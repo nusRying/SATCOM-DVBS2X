@@ -1,24 +1,34 @@
-# SatCom Python Project
+# SATCOM DVB-S2 Baseband Chain
 
-This repository is a scaffold for implementing a satellite baseband processing chain in Python. It provides module stubs for each component (from the planning spreadsheet) so you can implement algorithmic details incrementally.
+This repo contains a Python implementation of a DVB-S2 baseband processing chain (BB frame generation, BCH/LDPC, bit interleaving, constellation mapping, PL header, and PL scrambling). It also includes sample data and reports used to validate each stage.
 
-Quick start (Windows PowerShell):
+## Layout
+- `run_dvbs2.py` - interactive transmitter run that drives the full chain
+- `BB_Frame.py` - BB frame building and stream adaptation helpers
+- `stream_adaptation.py` - rate adaption utilities
+- `bch_encoding.py` - BCH encoding
+- `ldpc_Encoding.py` - LDPC encoding (uses parity matrices in `s2xLDPCParityMatrices/`)
+- `bit_interleaver.py` - DVB-S2 bit interleaver
+- `constellation_mapper.py` - modulation mapping
+- `pl_header.py` - PL header creation
+- `pl_scrambler.py` - PL scrambling
+- `GS_data/` and `TS_data/` - input examples
+- `Data/` - generated or intermediate data (some files tracked with Git LFS)
 
+## Quick start (Windows PowerShell)
 ```powershell
-# create and activate a virtual environment
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-# install requirements
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-# run demo
-python scripts\run_demo.py
+python run_dvbs2.py
 ```
 
-What's included:
-- `satcom/` - Python package with module stubs for each processing block.
-- `scripts/run_demo.py` - simple runner showing how to wire stubs.
-- `tests/` - basic tests to verify imports and stubs.
+## Configuration notes
+- Update `BITS_CSV_PATH` in `run_dvbs2.py` to point to your input CSV file.
+- Update `MAT_PATH` in `run_dvbs2.py` to point to the LDPC parity matrix file.
 
-Next steps:
-- Implement algorithms in each module (see module docstrings).
-- Replace or add dependencies for performance (NumPy, SciPy, C extensions, or bindings to Liquid-DSP/GNU Radio).
-- Add unit tests per module as you implement functionality.
+## Outputs
+The run generates text reports and intermediate bit/symbol files in the repo root, including `dvbs2_full_report.txt`.
+
+## Git LFS
+Large data files (for example `Data/bits_single_column.csv`) are tracked with Git LFS.
