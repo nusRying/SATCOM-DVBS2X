@@ -180,7 +180,7 @@ def pl_scramble_symbols(
     Scramble complex symbols AFTER PLHEADER by multiplying with C_n(i).
 
     Parameters
-    ----------
+    ----------  
     symbols_after_plheader : np.ndarray (complex), shape (N,)
         Symbols starting immediately after PLHEADER (i.e., first symbol uses C_n(0)).
         If you want to scramble a later portion, use start_index.

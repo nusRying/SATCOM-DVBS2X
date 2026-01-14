@@ -183,11 +183,21 @@ def run_dvbs2_transmitter():
 
         plheader_bits, plheader_symbols = build_plheader(modcod, fecframe, pilots_on)
         plframe_symbols = np.concatenate([plheader_symbols, payload_symbols])
+        report.section("PL SCRAMBLING (INTERMEDIATE)")
+        report.write(f"PLHEADER symbols         : {len(plheader_symbols)}")
+        report.write(f"PLFRAME symbols (pre)    : {len(plframe_symbols)}")
+        report.write("First PLFRAME symbols (pre): " + ", ".join(
+            f"{s.real:+.3f}{s.imag:+.3f}j" for s in plframe_symbols[:8]
+        ))
         symbols = pl_scramble_full_plframe(
             plframe_symbols,
             scrambling_code,
             plheader_len=plheader_symbols.size
         )
+        report.write(f"PLFRAME symbols (post)   : {len(symbols)}")
+        report.write("First PLFRAME symbols (post): " + ", ".join(
+            f"{s.real:+.3f}{s.imag:+.3f}j" for s in symbols[:8]
+        ))
 
     report.section("CONSTELLATION MAPPING (ETSI 5.4)")
     report.write(f"Modulation               : {modulation}")
