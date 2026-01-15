@@ -35,6 +35,12 @@ from bit_interleaver import (
 from constellation_mapper import dvbs2_constellation_map
 from pl_header import modcod_from_modulation_rate, build_plheader
 from pl_scrambler import pl_scramble_full_plframe
+from pilot_insertion import (
+    insert_pilots,
+    SLOT_LEN,
+    PILOT_BLOCK_LEN,
+    PILOT_PERIOD_SLOTS
+)
 
 # ------------------------------------------------------------
 # User configuration
@@ -182,6 +188,17 @@ def run_dvbs2_transmitter():
         )
 
         plheader_bits, plheader_symbols = build_plheader(modcod, fecframe, pilots_on)
+        if pilots_on:
+            nslots = payload_symbols.size // SLOT_LEN
+            n_pil = nslots // PILOT_PERIOD_SLOTS
+            report.section("PILOT INSERTION (ETSI 5.5.3)")
+            report.write(f"Slots per PLFRAME         : {nslots}")
+            report.write(f"Pilot block period (slots): {PILOT_PERIOD_SLOTS}")
+            report.write(f"Pilot block length        : {PILOT_BLOCK_LEN}")
+            report.write(f"Pilot blocks inserted     : {n_pil}")
+            report.write(f"Symbols (pre)             : {len(payload_symbols)}")
+            payload_symbols = insert_pilots(payload_symbols)
+            report.write(f"Symbols (post)            : {len(payload_symbols)}")
         plframe_symbols = np.concatenate([plheader_symbols, payload_symbols])
         report.section("PL SCRAMBLING (INTERMEDIATE)")
         report.write(f"PLHEADER symbols         : {len(plheader_symbols)}")

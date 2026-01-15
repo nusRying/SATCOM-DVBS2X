@@ -82,17 +82,15 @@ def expected_total_symbols_with_pilots(fecframe: str) -> int:
 # Core: Pilot insertion
 # -----------------------------------------------------------------------------
 
-def insert_pilots(data_symbols: np.ndarray, fecframe: str) -> np.ndarray:
+def insert_pilots(data_symbols: np.ndarray) -> np.ndarray:
     """
     Insert DVB-S2 pilot blocks into PLFRAME data symbols.
 
     Parameters
-    ----------
+    ----------  
     data_symbols : np.ndarray (complex), length = Nslots*90
         Data symbols for the PLFRAME (output of constellation mapping),
         excluding PLHEADER and excluding pilots.
-    fecframe : str
-        'normal' or 'short'
 
     Returns
     -------
@@ -100,14 +98,12 @@ def insert_pilots(data_symbols: np.ndarray, fecframe: str) -> np.ndarray:
         Data symbols with pilot blocks inserted.
     """
     s = _as_1d_complex(data_symbols, "data_symbols")
-    nslots = n_slots_for_fecframe(fecframe)
-    needed = nslots * SLOT_LEN
-
-    if s.size != needed:
+    if s.size % SLOT_LEN != 0:
         raise ValueError(
-            f"data_symbols length must be {needed} for fecframe={fecframe} "
-            f"(Nslots={nslots}, SLOT_LEN={SLOT_LEN}), got {s.size}"
+            f"data_symbols length must be a multiple of {SLOT_LEN}, got {s.size}"
         )
+    nslots = s.size // SLOT_LEN
+    needed = nslots * SLOT_LEN
 
     n_pil = nslots // PILOT_PERIOD_SLOTS
     if n_pil == 0:
@@ -189,7 +185,7 @@ def _self_test():
         n = expected_data_symbols(fec)
         x = (rng.standard_normal(n) + 1j * rng.standard_normal(n)).astype(np.complex128)
 
-        y = insert_pilots(x, fec)
+        y = insert_pilots(x)
         assert y.size == expected_total_symbols_with_pilots(fec)
 
         x2, p = remove_pilots(y, fec)
