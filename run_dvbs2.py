@@ -3,10 +3,6 @@ print("\n========== DVB-S2 TRANSMITTER RUN ==========\n")
 import numpy as np
 import os
 
-# ------------------------------------------------------------
-# Import modules
-# ------------------------------------------------------------
-
 from BB_Frame import (
     dvbs2_bbframe_generator_from_bits_csv,
     build_bbheader,
@@ -35,32 +31,19 @@ from bit_interleaver import (
 from constellation_mapper import dvbs2_constellation_map
 from pl_header import modcod_from_modulation_rate, build_plheader
 from pl_scrambler import pl_scramble_full_plframe
-from pilot_insertion import (
-    insert_pilots,
-    SLOT_LEN,
-    PILOT_BLOCK_LEN,
-    PILOT_PERIOD_SLOTS
-)
-
-# ------------------------------------------------------------
-# User configuration
-# ------------------------------------------------------------
+from pilot_insertion import insert_pilots_into_payload
+from plot_qpsk_fft import plot_qpsk_fft, plot_dvbs2_qpsk_spectrum
+from bb_filter import dvbs2_bb_filter
 
 BITS_CSV_PATH = r"C:\Users\umair\Videos\JOB - NASTP\SATCOM\Code\GS_data\umair_gs_bits.csv"
 MAX_FRAMES    = 3
 REPORT_FILE   = "dvbs2_full_report.txt"
 MAT_PATH      = r"C:\Users\umair\Videos\JOB - NASTP\SATCOM\Code\s2xLDPCParityMatrices\dvbs2xLDPCParityMatrices.mat"
 
-# ------------------------------------------------------------
-# MAIN RUN
-# ------------------------------------------------------------
 
 def run_dvbs2_transmitter():
     report = BBFrameReport(REPORT_FILE)
 
-    # -----------------------------
-    # User inputs
-    # -----------------------------
     stream_type = input("Enter stream type (TS or GS): ").strip().upper()
     fecframe    = input("Enter FECFRAME type (normal/short): ").strip().lower()
     rate        = input("Enter code rate (e.g., 1/2, 3/5, 2/3, 3/4, 5/6, 8/9, 9/10): ").strip()
@@ -70,6 +53,23 @@ def run_dvbs2_transmitter():
     scr_in      = input("Enter PL scrambling code (0..262142, default 0): ").strip()
     scrambling_code = int(scr_in) if scr_in else 0
     DFL         = int(input("Enter DFL: "))
+    sps_in      = input("Enter RRC samples-per-symbol (default 4): ").strip()
+    span_in     = input("Enter RRC span in symbols (default 10): ").strip()
+    rrc_sps     = int(sps_in) if sps_in else 4
+    rrc_span    = int(span_in) if span_in else 10
+    upc_in      = input("Enable RF upconversion (yes/no, default no): ").strip().lower()
+    upconvert   = upc_in in {"yes", "y", "1", "true", "on"}
+    if upconvert:
+        Rs = float(input("Enter symbol rate in Hz (e.g., 1e6): ").strip())
+        fc = float(input("Enter carrier frequency in Hz (must be < fs/2): ").strip())
+        phase_in = input("Enter carrier phase (radians, default 0): ").strip()
+        phase0 = float(phase_in) if phase_in else 0.0
+        if Rs <= 0:
+            raise ValueError("Symbol rate must be > 0.")
+    else:
+        Rs = 0.0
+        fc = 0.0
+        phase0 = 0.0
 
     pilots_on = pilots_in in {"pilots_on", "on", "yes", "y", "1", "true"}
     modcod = modcod_from_modulation_rate(modulation, rate)
@@ -85,20 +85,15 @@ def run_dvbs2_transmitter():
     if not (0 <= DFL <= Kbch - 80):
         raise ValueError(f"DFL must satisfy 0 ≤ DFL ≤ {Kbch - 80}")
 
-    # -----------------------------
-    # Load input bits
-    # -----------------------------
     csv_path = resolve_input_path(BITS_CSV_PATH)
     in_bits = load_bits_csv(csv_path)
     report.log_input_data(csv_path, in_bits)
 
-    # -----------------------------
-    # Mode adaptation setup
-    # -----------------------------
     if UPL == 0:
         mode_stream = in_bits
         stream_ptr = 0
         packetized = False
+        df_global_pos = 0
     else:
         crc_stream = PacketizedCrc8Stream(in_bits, UPL)
         packetized = True
@@ -107,20 +102,38 @@ def run_dvbs2_transmitter():
     frames = 0
 
     def write_bits_single_line(path: str, bits: np.ndarray):
-        with open(path, "w") as f:
-            f.write("".join("1" if b else "0" for b in bits))
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("".join("1" if int(b) else "0" for b in bits.reshape(-1)))
 
     def write_symbols(path: str, syms: np.ndarray):
-        with open(path, "w") as f:
-            for s in syms:
+        with open(path, "w", encoding="utf-8") as f:
+            for s in syms.reshape(-1):
                 f.write(f"{s.real:+.6f} {s.imag:+.6f}\n")
 
-    # -----------------------------
-    # FRAME LOOP
-    # -----------------------------
+    def write_bb_samples(path: str, samps: np.ndarray):
+        with open(path, "w", encoding="utf-8") as f:
+            for s in samps.reshape(-1):
+                f.write(f"{s.real:+.6f} {s.imag:+.6f}\n")
+
+    def write_rf_samples(path: str, samps: np.ndarray):
+        with open(path, "w", encoding="utf-8") as f:
+            for s in samps.reshape(-1):
+                f.write(f"{s:+.6f}\n")
+
+    def iq_upconvert(bb: np.ndarray, fs: float, fc: float, phase0: float = 0.0) -> np.ndarray:
+        if fc <= 0 or fc >= fs / 2:
+            raise ValueError("fc must be in (0, fs/2).")
+        n = np.arange(len(bb), dtype=np.float64)
+        t = n / fs
+        lo = np.exp(1j * (2.0 * np.pi * fc * t + phase0))
+        rf = np.real(bb * lo)
+        return rf.astype(np.float64)
+
     while frames < MAX_FRAMES:
 
-        # ----- DATA FIELD -----
+        # -----------------------------
+        # BBFRAME build
+        # -----------------------------
         if DFL == 0:
             DF = np.array([], dtype=np.uint8)
         elif packetized:
@@ -149,20 +162,20 @@ def run_dvbs2_transmitter():
         report.log_bbframe(BBFRAME)
 
         # -----------------------------
-        # STREAM ADAPTATION
+        # Stream adaptation (pad + BB scrambling)
         # -----------------------------
         padded_bbframe = pad_bbframe_rate(BBFRAME, fecframe, rate)
         adapted = stream_adaptation_rate(BBFRAME, fecframe, rate)
 
         # -----------------------------
-        # BCH ENCODING
+        # BCH
         # -----------------------------
         Kbch, Nbch, t = BCH_PARAMS[(fecframe, rate)]
         bch_codeword = bch_encode_bbframe(adapted, fecframe, rate)
         report.log_bch_encoding(adapted, bch_codeword, fecframe, rate, Kbch, Nbch, t)
 
         # -----------------------------
-        # LDPC ENCODING
+        # LDPC
         # -----------------------------
         ldpc_encoder = DVB_LDPC_Encoder(MAT_PATH)
         ldpc_codeword = ldpc_encoder.encode(bch_codeword, fecframe, rate)
@@ -171,7 +184,7 @@ def run_dvbs2_transmitter():
         report.bits("LDPC codeword", ldpc_codeword)
 
         # -----------------------------
-        # BIT INTERLEAVING (ETSI 5.3.3)
+        # Bit interleaver
         # -----------------------------
         interleaved = dvbs2_bit_interleave(ldpc_codeword, modulation)
 
@@ -179,7 +192,7 @@ def run_dvbs2_transmitter():
         report.bits("Interleaved bits", interleaved)
 
         # -----------------------------
-        # CONSTELLATION MAPPING (ETSI 5.4)
+        # Constellation mapping (payload)
         # -----------------------------
         payload_symbols = dvbs2_constellation_map(
             interleaved,
@@ -187,84 +200,139 @@ def run_dvbs2_transmitter():
             code_rate=rate
         )
 
-        plheader_bits, plheader_symbols = build_plheader(modcod, fecframe, pilots_on)
-        if pilots_on:
-            nslots = payload_symbols.size // SLOT_LEN
-            n_pil = nslots // PILOT_PERIOD_SLOTS
-            report.section("PILOT INSERTION (ETSI 5.5.3)")
-            report.write(f"Slots per PLFRAME         : {nslots}")
-            report.write(f"Pilot block period (slots): {PILOT_PERIOD_SLOTS}")
-            report.write(f"Pilot block length        : {PILOT_BLOCK_LEN}")
-            report.write(f"Pilot blocks inserted     : {n_pil}")
-            report.write(f"Symbols (pre)             : {len(payload_symbols)}")
-            payload_symbols = insert_pilots(payload_symbols)
-            report.write(f"Symbols (post)            : {len(payload_symbols)}")
-        plframe_symbols = np.concatenate([plheader_symbols, payload_symbols])
-        report.section("PL SCRAMBLING (INTERMEDIATE)")
-        report.write(f"PLHEADER symbols         : {len(plheader_symbols)}")
-        report.write(f"PLFRAME symbols (pre)    : {len(plframe_symbols)}")
-        report.write("First PLFRAME symbols (pre): " + ", ".join(
-            f"{s.real:+.3f}{s.imag:+.3f}j" for s in plframe_symbols[:8]
+        report.section("CONSTELLATION MAPPING (ETSI 5.4)")
+        report.write(f"Modulation               : {modulation}")
+        report.write(f"MODCOD (ETSI)            : {modcod}")
+        report.write(f"Payload symbols          : {len(payload_symbols)}")
+        report.write("First payload symbols    : " + ", ".join(
+            f"{s.real:+.3f}{s.imag:+.3f}j" for s in payload_symbols[:8]
         ))
-        symbols = pl_scramble_full_plframe(
-            plframe_symbols,
-            scrambling_code,
-            plheader_len=plheader_symbols.size
+
+        # -----------------------------
+        # PLHEADER
+        # -----------------------------
+        plh_bits, plh_syms = build_plheader(modcod, fecframe, pilots_on)
+
+        # -----------------------------
+        # PILOT INSERTION (MUST BE BEFORE PL SCRAMBLING)
+        # -----------------------------
+        payload_with_pilots, pilot_meta = insert_pilots_into_payload(
+            payload_symbols,
+            pilots_on,
+            fecframe=fecframe
         )
+
+        report.section("PILOT INSERTION (ETSI 5.5.3)")
+        report.write(f"Pilots enabled           : {pilot_meta['pilots_on']}")
+        if pilot_meta["pilots_on"]:
+            report.write(f"S (payload slots)        : {pilot_meta['S_slots']}")
+            report.write(f"Pilot blocks inserted    : {pilot_meta['pilot_blocks']}")
+            report.write(f"Pilot symbol (pre-scr)   : {pilot_meta['pilot_symbol'].real:+.6f}{pilot_meta['pilot_symbol'].imag:+.6f}j")
+            report.write(f"Payload syms in/out      : {pilot_meta['payload_symbols_in']} → {pilot_meta['payload_symbols_out']}")
+        else:
+            report.write("Pilot blocks inserted    : 0")
+
+        # Build PLFRAME BEFORE scrambling: PLHEADER + (payload with pilots)
+        plframe_pre_scramble = np.concatenate([plh_syms, payload_with_pilots])
+
+        report.section("PLFRAME (PRE-SCRAMBLE)")
+        report.write(f"PLHEADER symbols         : {len(plh_syms)}")
+        report.write(f"PLFRAME symbols (pre)    : {len(plframe_pre_scramble)}")
+        report.write("First PLFRAME symbols (pre): " + ", ".join(
+            f"{s.real:+.3f}{s.imag:+.3f}j" for s in plframe_pre_scramble[:8]
+        ))
+
+        # -----------------------------
+        # PL SCRAMBLING (exclude PLHEADER)
+        # -----------------------------
+        symbols = pl_scramble_full_plframe(
+            plframe_pre_scramble,
+            scrambling_code,
+            plheader_len=len(plh_syms)
+        )
+
+        report.section("PL SCRAMBLING (ETSI 5.5.4)")
+        report.write(f"Scrambling code          : {scrambling_code}")
         report.write(f"PLFRAME symbols (post)   : {len(symbols)}")
         report.write("First PLFRAME symbols (post): " + ", ".join(
             f"{s.real:+.3f}{s.imag:+.3f}j" for s in symbols[:8]
         ))
 
-    report.section("CONSTELLATION MAPPING (ETSI 5.4)")
-    report.write(f"Modulation               : {modulation}")
-    report.write(f"MODCOD (ETSI)            : {modcod}")
-    report.write(f"Total payload symbols    : {len(payload_symbols)}")
-    report.write("First payload symbols    : " + ", ".join(
-        f"{s.real:+.3f}{s.imag:+.3f}j" for s in payload_symbols[:8]
-    ))
+        # -----------------------------
+        # Baseband RRC filter (after PL scrambling)
+        # -----------------------------
+        bb_samples, rrc_taps = dvbs2_bb_filter(
+            symbols,
+            alpha=alpha,
+            sps=rrc_sps,
+            span=rrc_span
+        )
+        rf_samples = None
+        if upconvert:
+            fs = Rs * rrc_sps
+            rf_samples = iq_upconvert(bb_samples, fs=fs, fc=fc, phase0=phase0)
+            report.section("RF UPCONVERSION")
+            report.write(f"Symbol rate (Rs)         : {Rs}")
+            report.write(f"Sample rate (fs)         : {fs}")
+            report.write(f"Carrier frequency (fc)   : {fc}")
+            report.write(f"Carrier phase (rad)      : {phase0}")
+            report.write("First RF samples         : " + ", ".join(
+                f"{s:+.6f}" for s in rf_samples[:8]
+            ))
+        plot_fs_bb = (Rs * rrc_sps) if upconvert else 1.0
+        plot_fs_sym = Rs if upconvert else 1.0
+        plot_qpsk_fft(
+            bb_samples,
+            fs=plot_fs_bb,
+            title="DVB-S2 Baseband Spectrum (RRC)"
+        )
+        if modulation == "QPSK":
+            plot_qpsk_fft(
+                symbols,
+                fs=plot_fs_sym,
+                title="DVB-S2 QPSK PLFRAME Spectrum"
+            )
+            plot_dvbs2_qpsk_spectrum(
+                symbols,
+                alpha=alpha,
+                sps=rrc_sps,
+                span=rrc_span
+            )
 
-    report.section("PLHEADER / PL SCRAMBLING")
-    report.write(f"Scrambling code          : {scrambling_code}")
-    report.write(f"PLHEADER symbols         : {len(plheader_symbols)}")
-    report.write(f"PLFRAME symbols          : {len(symbols)}")
-    report.write("First PLFRAME symbols    : " + ", ".join(
-        f"{s.real:+.3f}{s.imag:+.3f}j" for s in symbols[:8]
-    ))
+        # -----------------------------
+        # Sanity check: interleaver round-trip
+        # -----------------------------
+        recovered = dvbs2_bit_deinterleave(interleaved, modulation)
+        report.section("INTERLEAVER SANITY CHECK")
+        if not np.array_equal(recovered, ldpc_codeword):
+            report.write("WARNING: Interleaver round-trip mismatch")
+        else:
+            report.write("Interleaver round-trip: OK")
 
-    # -----------------------------
-    # SANITY CHECK
-    # -----------------------------
-    recovered = dvbs2_bit_deinterleave(interleaved, modulation)
-    if not np.array_equal(recovered, ldpc_codeword):
-        report.write("WARNING: Interleaver round-trip mismatch")
-    else:
-        report.write("Interleaver round-trip: OK")
+        # -----------------------------
+        # Save outputs
+        # -----------------------------
+        write_bits_single_line(f"ldpc_{frames}.txt", ldpc_codeword)
+        write_bits_single_line(f"interleaved_{frames}.txt", interleaved)
+        write_symbols(f"symbols_{frames}.txt", symbols)
+        write_bb_samples(f"bb_samples_{frames}.txt", bb_samples)
+        if rf_samples is not None:
+            write_rf_samples(f"rf_samples_{frames}.txt", rf_samples)
 
-    # -----------------------------
-    # SAVE OUTPUT FILES
-    # -----------------------------
-    write_bits_single_line(f"ldpc_{frames}.txt", ldpc_codeword)
-    write_bits_single_line(f"interleaved_{frames}.txt", interleaved)
-    write_symbols(f"symbols_{frames}.txt", symbols)
+        save_bbframe_to_file_rate(
+            padded_bbframe,
+            adapted,
+            f"bbframe_{frames}.txt",
+            fecframe,
+            rate,
+            output_mode="both_single_line"
+        )
 
-    save_bbframe_to_file_rate(
-        padded_bbframe,
-        adapted,
-        f"bbframe_{frames}.txt",
-        fecframe,
-        rate,
-        output_mode="both_single_line"
-    )
-
-    print(f"Frame {frames}: OK")
+        print(f"Frame {frames}: OK")
 
     report.close()
     print(f"\nReport written to: {REPORT_FILE}")
 
-# ------------------------------------------------------------
-# RUN
-# ------------------------------------------------------------
 
 if __name__ == "__main__":
     run_dvbs2_transmitter()

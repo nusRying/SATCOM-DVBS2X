@@ -11,14 +11,14 @@ import numpy as np
 #  Helper functions
 # ------------------------------------------------------------
 
-def bits_to_str(bits, max_len=64):
+def bits_to_str(bits, max_len=None):
     """
     Convert bit array to string (truncated for readability).
     """
     bits = list(bits)
-    shown = bits[:max_len]
+    shown = bits if max_len is None else bits[:max_len]
     s = "".join(str(int(b)) for b in shown)
-    if len(bits) > max_len:
+    if max_len is not None and len(bits) > max_len:
         s += " ..."
     return s
 
@@ -58,7 +58,7 @@ class BBFrameReport:
         self.write(title)
         self.write("=" * 60)
 
-    def bits(self, label, bits, max_len=64):
+    def bits(self, label, bits, max_len=None):
         self.write(f"{label}:")
         self.write(f"  Length : {len(bits)} bits")
         self.write(f"  Bits   : {bits_to_str(bits, max_len)}")

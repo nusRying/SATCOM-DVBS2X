@@ -44,8 +44,11 @@ PILOT_PERIOD_SLOTS = 16
 #
 # This matches the "quadrature" pilot pattern used for carrier/phase tracking.
 # (Receiver correlates against this known periodic sequence.)
-PILOT_SYMBOLS_36 = np.array(
-    [1, 1j, -1, -1j] * (PILOT_BLOCK_LEN // 4),
+# NOTE: Per ETSI, pilots are constant pi/2-BPSK; all 36 symbols identical.
+_P = 1.0 / np.sqrt(2.0)
+PILOT_SYMBOLS_36 = np.full(
+    (PILOT_BLOCK_LEN,),
+    complex(_P, _P),
     dtype=np.complex128
 )
 
@@ -72,7 +75,8 @@ def expected_data_symbols(fecframe: str) -> int:
     return n_slots_for_fecframe(fecframe) * SLOT_LEN
 
 def pilot_block_count(fecframe: str) -> int:
-    return n_slots_for_fecframe(fecframe) // PILOT_PERIOD_SLOTS
+    nslots = n_slots_for_fecframe(fecframe)
+    return (nslots - 1) // PILOT_PERIOD_SLOTS if nslots > 0 else 0
 
 def expected_total_symbols_with_pilots(fecframe: str) -> int:
     return expected_data_symbols(fecframe) + pilot_block_count(fecframe) * PILOT_BLOCK_LEN
@@ -105,7 +109,7 @@ def insert_pilots(data_symbols: np.ndarray) -> np.ndarray:
     nslots = s.size // SLOT_LEN
     needed = nslots * SLOT_LEN
 
-    n_pil = nslots // PILOT_PERIOD_SLOTS
+    n_pil = (nslots - 1) // PILOT_PERIOD_SLOTS if nslots > 0 else 0
     if n_pil == 0:
         return s.copy()
 
@@ -133,6 +137,46 @@ def insert_pilots(data_symbols: np.ndarray) -> np.ndarray:
     return out
 
 
+def insert_pilots_into_payload(
+    data_symbols: np.ndarray,
+    pilots_on: bool,
+    fecframe: str | None = None
+) -> Tuple[np.ndarray, dict]:
+    """
+    Insert pilots if enabled and return (payload_symbols_out, meta_dict).
+    """
+    s = _as_1d_complex(data_symbols, "data_symbols")
+    if s.size % SLOT_LEN != 0:
+        raise ValueError(
+            f"data_symbols length must be a multiple of {SLOT_LEN}, got {s.size}"
+        )
+
+    if fecframe is not None:
+        expected = expected_data_symbols(fecframe)
+        if s.size != expected:
+            raise ValueError(
+                f"data_symbols length must be {expected} for fecframe={fecframe}, got {s.size}"
+            )
+
+    nslots = s.size // SLOT_LEN
+    n_pil = (nslots - 1) // PILOT_PERIOD_SLOTS if (pilots_on and nslots > 0) else 0
+
+    if pilots_on:
+        out = insert_pilots(s)
+    else:
+        out = s.copy()
+
+    meta = {
+        "pilots_on": bool(pilots_on),
+        "S_slots": int(nslots),
+        "pilot_blocks": int(n_pil),
+        "pilot_symbol": PILOT_SYMBOLS_36[0],
+        "payload_symbols_in": int(s.size),
+        "payload_symbols_out": int(out.size),
+    }
+    return out, meta
+
+
 def remove_pilots(rx_symbols: np.ndarray, fecframe: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Receiver-side helper: remove pilot blocks and return:
@@ -143,7 +187,7 @@ def remove_pilots(rx_symbols: np.ndarray, fecframe: str) -> Tuple[np.ndarray, np
     r = _as_1d_complex(rx_symbols, "rx_symbols")
 
     nslots = n_slots_for_fecframe(fecframe)
-    n_pil = nslots // PILOT_PERIOD_SLOTS
+    n_pil = (nslots - 1) // PILOT_PERIOD_SLOTS if nslots > 0 else 0
     data_needed = nslots * SLOT_LEN
 
     total_needed = data_needed + n_pil * PILOT_BLOCK_LEN

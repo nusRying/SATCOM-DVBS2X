@@ -107,6 +107,20 @@ def validate_modcod(modcod: int, allow_reserved: bool = False) -> ModcodInfo:
     return info
 
 
+def modcod_from_modulation_rate(modulation: str, code_rate: str) -> int:
+    """
+    Resolve MODCOD from modulation and code rate per ETSI Table 12.
+    """
+    mod = modulation.strip().upper()
+    rate = code_rate.strip()
+    for modcod, info in MODCOD_TABLE.items():
+        if info.modulation.upper() == mod and info.code_rate == rate:
+            if info.modulation == "RESERVED":
+                continue
+            return modcod
+    raise ValueError(f"No MODCOD for modulation={modulation}, rate={code_rate}")
+
+
 # -----------------------------------------------------------------------------
 # Clause 5.5.2.1: SOF (26 bits)
 # -----------------------------------------------------------------------------
