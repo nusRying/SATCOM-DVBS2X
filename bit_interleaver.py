@@ -17,6 +17,29 @@ BITS_PER_SYMBOL = {
     "32APSK": 5,
 }
 
+# Variant for soft metrics (LLRs); uses same permutation but keeps dtype/values.
+def dvbs2_llr_deinterleave(llr: np.ndarray, modulation: str) -> np.ndarray:
+    modulation = modulation.upper()
+    y = np.asarray(llr).reshape(-1)
+
+    if modulation == "QPSK":
+        return y
+
+    if modulation not in BITS_PER_SYMBOL:
+        raise ValueError(f"Unsupported modulation '{modulation}'")
+
+    m = BITS_PER_SYMBOL[modulation]
+    if y.size % m != 0:
+        raise ValueError(
+            f"Interleaved length {y.size} not divisible by bits-per-symbol {m}"
+        )
+
+    Ns = y.size // m
+    out = np.empty_like(y, dtype=np.float64)
+    for j in range(m):
+        out[j::m] = y[j * Ns : (j + 1) * Ns]
+    return out
+
 # ------------------------------------------------------------
 # Utility: enforce clean 1-D uint8 {0,1}
 # ------------------------------------------------------------

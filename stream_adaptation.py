@@ -231,6 +231,44 @@ def get_kbch(fecframe: str, rate: str) -> int:
     Kbch, _, _ = BCH_PARAMS[key]
     return Kbch
 
+# ============================================================
+#  Inverse operations (descramble + keep padding)
+# ============================================================
+
+def bb_descramble(scrambled_bits: np.ndarray) -> np.ndarray:
+    """
+    Inverse of bb_scramble (same PRBS, XOR again).
+    Length must equal Kbch (padding kept).
+    """
+    scrambled_bits = _as_1d_bits(scrambled_bits, "scrambled_bits")
+
+    # Same register as scrambler
+    reg = [
+        1, 0, 0, 1, 0,
+        1, 0, 1, 0, 0,
+        0, 0, 0, 0, 0
+    ]
+
+    out = np.empty_like(scrambled_bits)
+    for i in range(scrambled_bits.size):
+        prbs_bit = reg[-1]
+        out[i] = scrambled_bits[i] ^ prbs_bit
+        feedback = reg[-1] ^ reg[-2]
+        reg = [feedback] + reg[:-1]
+    return out
+
+
+def stream_deadaptation_rate(scrambled_kbch: np.ndarray, fecframe: str, rate: str) -> np.ndarray:
+    """
+    Reverse of stream_adaptation_rate: descramble only, keeps padding.
+    Caller is responsible for trimming padding using BBHEADER/DFL if needed.
+    """
+    Kbch = get_kbch(fecframe, rate)
+    s = _as_1d_bits(scrambled_kbch, "scrambled_kbch")
+    if s.size != Kbch:
+        raise ValueError(f"scrambled_kbch length {s.size} != Kbch {Kbch}")
+    return bb_descramble(s)
+
 
 # ============================================================
 #  Rate-aware padding (ETSI 5.2.1): pad to Kbch
