@@ -74,8 +74,10 @@ def _prompt(msg: str, default: str | None = None) -> str:
 
 def run_end_to_end() -> None:
     # Interactive inputs (similar to tx/run_dvbs2.py)
-    bits_csv_path = _prompt("Enter bits CSV path", r"C:\Users\umair\Videos\JOB - NASTP\SATCOM\Code\GS_data\umair_gs_bits.csv")
-    mat_path = _prompt("Enter LDPC MAT path", r"C:\Users\umair\Videos\JOB - NASTP\SATCOM\Code\s2xLDPCParityMatrices\dvbs2xLDPCParityMatrices.mat")
+    default_csv = os.path.join(ROOT, "GS_data", "umair_gs_bits.csv")
+    default_mat = os.path.join(ROOT, "s2xLDPCParityMatrices", "dvbs2xLDPCParityMatrices.mat")
+    bits_csv_path = _prompt("Enter bits CSV path", default_csv)
+    mat_path = _prompt("Enter LDPC MAT path", default_mat)
     stream_type = _prompt("Enter stream type (TS/GS)", "GS").upper()
     fecframe = _prompt("Enter FECFRAME (normal/short)", "short").lower()
     rate = _prompt("Enter code rate (e.g., 1/2)", "1/2")

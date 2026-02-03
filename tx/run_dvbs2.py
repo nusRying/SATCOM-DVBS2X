@@ -39,10 +39,10 @@ from common.pilot_insertion import insert_pilots_into_payload
 from tx.plot_qpsk_fft import plot_qpsk_fft, plot_dvbs2_qpsk_spectrum
 from tx.bb_filter import dvbs2_bb_filter
 
-BITS_CSV_PATH = r"C:\Users\umair\Videos\JOB - NASTP\SATCOM\Code\GS_data\umair_gs_bits.csv"
+BITS_CSV_PATH = os.path.join(ROOT, "GS_data", "umair_gs_bits.csv")
 MAX_FRAMES    = 3
 REPORT_FILE   = "dvbs2_full_report.txt"
-MAT_PATH      = r"C:\Users\umair\Videos\JOB - NASTP\SATCOM\Code\s2xLDPCParityMatrices\dvbs2xLDPCParityMatrices.mat"
+MAT_PATH      = os.path.join(ROOT, "s2xLDPCParityMatrices", "dvbs2xLDPCParityMatrices.mat")
 
 
 def run_dvbs2_transmitter():

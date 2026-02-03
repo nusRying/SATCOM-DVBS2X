@@ -88,9 +88,9 @@ def process_rx_plframe(
 
     if decode_ldpc:
         # Step 6: LDPC decode
-        mat_path = ldpc_mat_path or (
-            r"C:\Users\umair\Videos\JOB - NASTP\SATCOM\Code\s2xLDPCParityMatrices\dvbs2xLDPCParityMatrices.mat"
-        )
+        if ldpc_mat_path is None:
+            ldpc_mat_path = os.path.join(ROOT, "s2xLDPCParityMatrices", "dvbs2xLDPCParityMatrices.mat")
+        mat_path = ldpc_mat_path
         ldpc_dec = DVB_LDPC_Decoder(mat_path)
         ldpc_bits, ldpc_meta = ldpc_dec.decode(
             llrs_deint,
