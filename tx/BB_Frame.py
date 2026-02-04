@@ -1,3 +1,4 @@
+# Stage 02 - BB Frame - BB header & frame build
 print("\n========== SCRIPT START ==========\n")
 
 import os

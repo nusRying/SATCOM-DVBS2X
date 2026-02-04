@@ -1,3 +1,4 @@
+# Stage 17 - LDPC Decoder
 # ldpc_decoder.py
 # =============================================================================
 # DVB-S2 LDPC decoder (normalized min-sum) using parity tables from the same

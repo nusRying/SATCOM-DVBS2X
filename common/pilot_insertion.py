@@ -1,3 +1,4 @@
+# Stage 08 - Pilot Insertion (insert pilot blocks into PLFRAME)
 # pilot_insertion.py
 # =============================================================================
 # DVB-S2 Pilot Insertion (ETSI EN 302 307 V1.3.1)

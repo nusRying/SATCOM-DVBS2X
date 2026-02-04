@@ -54,22 +54,34 @@ def plot_constellation(symbols: np.ndarray, title: str, output_path: str):
         return
     
     try:
-        plt.figure(figsize=(8, 8))
-        plt.scatter(symbols.real, symbols.imag, alpha=0.6, s=20)
-        plt.axis('equal')
-        plt.grid(True, alpha=0.3)
-        plt.xlabel('In-phase (I)', fontsize=11)
-        plt.ylabel('Quadrature (Q)', fontsize=11)
-        plt.title(title, fontsize=12, fontweight='bold')
-        
+        if symbols is None or len(symbols) == 0:
+            print(f"Warning: No symbols to plot for {title}")
+            return
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.scatter(symbols.real, symbols.imag, alpha=0.7, s=30, facecolors='C0', edgecolors='k')
+        ax.set_aspect('equal')
+        ax.grid(True, alpha=0.3)
+        ax.set_xlabel('In-phase (I)', fontsize=11)
+        ax.set_ylabel('Quadrature (Q)', fontsize=11)
+        ax.set_title(title, fontsize=12, fontweight='bold')
+
+        # Set symmetric axis limits around zero for clarity
+        md = np.max(np.abs(symbols)) if len(symbols) > 0 else 1.0
+        if md == 0:
+            md = 1.0
+        lim = md * 1.2
+        ax.set_xlim(-lim, lim)
+        ax.set_ylim(-lim, lim)
+
         # Add power annotation
         power = np.mean(np.abs(symbols)**2)
-        plt.text(0.02, 0.98, f'Power: {power:.4f}', transform=plt.gca().transAxes,
+        ax.text(0.02, 0.98, f'Power: {power:.4f}', transform=ax.transAxes,
                 verticalalignment='top', fontsize=10, bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-        
+
         plt.tight_layout()
-        plt.savefig(output_path, dpi=100, bbox_inches='tight')
-        plt.close()
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close(fig)
     except Exception as e:
         print(f"Warning: Could not plot constellation: {e}")
 
@@ -108,6 +120,11 @@ def run_tx_rx_loopback(
     max_frames: int = 1,
     output_dir: str = "loopback_output",
     detailed_report: bool = True,
+    dfl: int | None = None,
+    upl: int | None = None,
+    frameization: str = "repeat",  # repeat | chunk
+    pad_policy: str = "pad",  # pad | drop
+    interactive: bool = False,
 ) -> dict:
     """
     Run a complete TX→RX loopback test.
@@ -130,13 +147,64 @@ def run_tx_rx_loopback(
     
     # Get parameters
     Kbch = get_kbch(fecframe, rate)
-    DFL = min(1000, Kbch - 80)  # Use reasonable data field length
-    UPL = 120
+    # Default DFL/UPL
+    DFL_default = min(1000, Kbch - 80)  # Use reasonable data field length
+    DFL = DFL_default if dfl is None else int(dfl)
+    UPL = 120 if upl is None else int(upl)
     SYNC_BYTE = 0x47
+
+    # Interactive prompts similar to tx/run_dvbs2.py
+    if interactive:
+        try:
+            user_dfl = input(f"Enter DFL (default {DFL}): ").strip()
+            if user_dfl:
+                DFL = int(user_dfl)
+            user_upl = input(f"Enter UPL (default {UPL}): ").strip()
+            if user_upl:
+                UPL = int(user_upl)
+            user_frameization = input(f"Frameization (repeat/chunk) (default {frameization}): ").strip().lower()
+            if user_frameization in {"repeat", "chunk"}:
+                frameization = user_frameization
+            user_pad = input(f"Pad policy for last chunk (pad/drop) (default {pad_policy}): ").strip().lower()
+            if user_pad in {"pad", "drop"}:
+                pad_policy = user_pad
+        except Exception as e:
+            print(f"Input error: {e}. Using defaults.")
     
-    # Get CSV path
+    # Get CSV path and load input bits
     csv_path = resolve_input_path(os.path.join(ROOT, "data", "GS_data", "umair_gs_bits.csv"))
     in_bits = load_bits_csv(csv_path)
+
+    # Prepare frames based on frameization mode
+    frames_bits = []
+    if frameization == "chunk":
+        if DFL <= 0:
+            frames_bits = []
+        else:
+            total = len(in_bits)
+            num_full = total // DFL
+            for i in range(num_full):
+                frames_bits.append(in_bits[i * DFL:(i + 1) * DFL])
+            rem = total - num_full * DFL
+            if rem > 0:
+                if pad_policy == "pad":
+                    last = in_bits[num_full * DFL:]
+                    padlen = DFL - len(last)
+                    last_padded = np.concatenate([last, np.zeros(padlen, dtype=np.uint8)])
+                    frames_bits.append(last_padded)
+                else:  # drop
+                    pass
+    else:
+        # repeat mode: use the same initial DFL-sized slice for all frames
+        base = in_bits[:DFL] if DFL > 0 else np.array([], dtype=np.uint8)
+        frames_bits = [base] * max_frames
+
+    # If chunk mode, limit the number of frames to max_frames
+    if frameization == "chunk":
+        if max_frames is None or max_frames <= 0:
+            max_frames = len(frames_bits)
+        else:
+            max_frames = min(max_frames, len(frames_bits))
     
     # Get LDPC encoder
     mat_path = os.path.join(ROOT, "config", "ldpc_matrices", "dvbs2xLDPCParityMatrices.mat")
@@ -174,7 +242,12 @@ def run_tx_rx_loopback(
         print("-" * 70)
         
         # Get TX input bits (for later comparison)
-        tx_input_bits = in_bits[:DFL] if DFL > 0 else np.array([], dtype=np.uint8)
+        # Use prepared frames_bits list (chunk or repeat behavior)
+        if len(frames_bits) >= frame_num:
+            tx_input_bits = frames_bits[frame_num - 1]
+        else:
+            # Fallback to default slice
+            tx_input_bits = in_bits[:DFL] if DFL > 0 else np.array([], dtype=np.uint8)
         
         if detailed_report:
             save_intermediate(tx_input_bits, "01_tx_input_bits", intermediate_dir, frame_num, "bits")
@@ -379,40 +452,40 @@ def run_tx_rx_loopback(
             "intermediate_saved": detailed_report,
         }
         
-            # Compare bits - only compare the actual user data (DFL bits), not padded frame
-            # tx_input_bits is DFL (720), rx_df_bits includes padding (1000)
-            bits_to_compare = len(tx_input_bits)  # Compare only the DFL bits
-            tx_cropped = tx_input_bits[:bits_to_compare]
-            rx_cropped = rx_df_bits[:bits_to_compare]  # Extract only first DFL bits from RX
-            
-            errors = np.sum(tx_cropped != rx_cropped)
-            ber = errors / bits_to_compare if bits_to_compare > 0 else 1.0
-            success = errors == 0
-            
-            frame_stats.update({
-                "rx_bits_shape": list(rx_df_bits.shape),
-                "bits_compared": int(bits_to_compare),
-                "bit_errors": int(errors),
-                "ber": float(ber),
-                "frame_success": bool(success),
-            })
-            
-            print(f"Bits Compared          : {bits_to_compare} (user data only)")
-            print(f"Bit Errors             : {errors}/{bits_to_compare}")
-            print(f"BER                    : {ber:.6e}")
-            print(f"Frame Success          : {'✅ YES' if success else '❌ NO'}")
-            
-            # Add LDPC metrics if available
-            if rx_output.get("ldpc_meta") is not None:
-                ldpc_meta = rx_output["ldpc_meta"]
-                if "iterations" in ldpc_meta:
-                    print(f"LDPC Iterations        : {ldpc_meta['iterations']}")
-            
-            # Add phase estimation metrics
-            if rx_output.get("phase_meta") is not None:
-                phase_meta = rx_output["phase_meta"]
-                if "phase_estimate" in phase_meta:
-                    print(f"Phase Error Estimate   : {phase_meta.get('phase_estimate', 0):.4f} rad")
+        # Compare bits - only compare the actual user data (DFL bits), not padded frame
+        # tx_input_bits is DFL (720), rx_df_bits includes padding (1000)
+        bits_to_compare = len(tx_input_bits)  # Compare only the DFL bits
+        tx_cropped = tx_input_bits[:bits_to_compare]
+        rx_cropped = rx_df_bits[:bits_to_compare]  # Extract only first DFL bits from RX
+
+        errors = np.sum(tx_cropped != rx_cropped)
+        ber = errors / bits_to_compare if bits_to_compare > 0 else 1.0
+        success = errors == 0
+
+        frame_stats.update({
+            "rx_bits_shape": list(rx_df_bits.shape),
+            "bits_compared": int(bits_to_compare),
+            "bit_errors": int(errors),
+            "ber": float(ber),
+            "frame_success": bool(success),
+        })
+
+        print(f"Bits Compared          : {bits_to_compare} (user data only)")
+        print(f"Bit Errors             : {errors}/{bits_to_compare}")
+        print(f"BER                    : {ber:.6e}")
+        print(f"Frame Success          : {'✅ YES' if success else '❌ NO'}")
+
+        # Add LDPC metrics if available
+        if rx_output.get("ldpc_meta") is not None:
+            ldpc_meta = rx_output["ldpc_meta"]
+            if "iterations" in ldpc_meta:
+                print(f"LDPC Iterations        : {ldpc_meta['iterations']}")
+
+        # Add phase estimation metrics
+        if rx_output.get("phase_meta") is not None:
+            phase_meta = rx_output["phase_meta"]
+            if "phase_estimate" in phase_meta:
+                print(f"Phase Error Estimate   : {phase_meta.get('phase_estimate', 0):.4f} rad")
         else:
             frame_stats["error"] = "RX decoding failed"
             print("❌ RX Decoding FAILED")

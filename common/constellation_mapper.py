@@ -1,3 +1,4 @@
+# Stage 07 - Constellation Mapper (TX symbol mapping)
 # constellation_mapper.py
 # ============================================================
 # DVB-S2 Constellation Mapper (ETSI EN 302 307-1)

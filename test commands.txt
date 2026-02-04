@@ -1,0 +1,8 @@
+# Noiseless loopback
+python test_tx_rx_loopback.py --max-frames 1
+
+# With noise (5 dB SNR)
+python test_tx_rx_loopback.py --max-frames 3 --esn0-db 5
+
+# Custom configuration
+python test_tx_rx_loopback.py --fecframe normal --rate 3/4 --modulation 8PSK --max-frames 5 --esn0-db 10

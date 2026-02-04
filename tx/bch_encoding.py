@@ -1,3 +1,4 @@
+# Stage 04 - BCH Encoding (outer BCH code)
 # bch_encoder.py
 import numpy as np
 

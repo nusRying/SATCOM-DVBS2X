@@ -1,3 +1,4 @@
+# Stage 13 - Pilot Removal (RX)
 # pilot_removal_rx.py
 # =============================================================================
 # DVB-S2 Pilot Removal (Receiver) - ETSI EN 302 307 V1.3.1 Clause 5.5.3

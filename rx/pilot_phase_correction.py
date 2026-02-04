@@ -1,3 +1,4 @@
+# Stage 14 - Pilot Phase Correction (CPE removal)
 # pilot_phase_correction.py
 # =============================================================================
 # Pilot-aided common phase error (CPE) correction for DVB-S2 payload symbols.

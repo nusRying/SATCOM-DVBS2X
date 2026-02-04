@@ -1,8 +1,10 @@
     
 """
+RX Chain: Steps 12-19 - Orchestrator
+
 DVB-S2 receiver chain (partial): PL descramble -> pilot removal -> pilot-based
-common phase correction. Downstream stages (demapper, deinterleaver, LDPC/BCH)
-to be added next.
+common phase correction. Downstream stages (demapper, deinterleave, LDPC/BCH)
+are orchestrated here (stages 12..19).
 """
 
 from __future__ import annotations

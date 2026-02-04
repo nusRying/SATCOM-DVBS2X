@@ -1,3 +1,4 @@
+# Stage 18 - BCH Decoder (check and strip)
 # bch_decoding.py
 # =============================================================================
 # BCH decoder (detect-only). Correction attempt deferred for stability.

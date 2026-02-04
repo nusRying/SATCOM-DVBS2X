@@ -1,3 +1,4 @@
+# Stage 10 - PL Scrambler (apply complex scrambler C_n)
 # pl_scrambler.py
 # =============================================================================
 # DVB-S2 PL Scrambler (ETSI EN 302 307 V1.3.1)

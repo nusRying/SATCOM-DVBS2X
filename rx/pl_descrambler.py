@@ -1,3 +1,4 @@
+# Stage 12 - PL Descrambler (inverse of PL scrambling)
 # pl_descrambler.py
 # =============================================================================
 # DVB-S2 PL Descrambler (inverse of PL scrambling)

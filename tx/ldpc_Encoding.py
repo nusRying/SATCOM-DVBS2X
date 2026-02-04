@@ -1,3 +1,4 @@
+# Stage 05 - LDPC Encoding (inner LDPC code)
 # ldpc_encoder.py
 import os
 import re

@@ -1,3 +1,4 @@
+# Stage 06/16 - Bit Interleaver (TX interleave / RX deinterleave)
 """
 # bit_interleaver.py
 # ============================================================

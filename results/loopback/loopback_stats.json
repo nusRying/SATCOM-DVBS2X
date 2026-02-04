@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-02-04T12:10:26.084322",
+  "timestamp": "2026-02-04T12:29:44.479603",
   "config": {
     "fecframe": "short",
     "rate": "1/2",
     "modulation": "QPSK",
     "pilots_on": true,
     "scrambling_code": 0,
-    "esn0_db": 6.0,
-    "max_frames": 2,
+    "esn0_db": null,
+    "max_frames": 3,
     "detailed_report": true
   },
   "frames": [
@@ -38,14 +38,28 @@
       "bit_errors": 0,
       "ber": 0.0,
       "frame_success": true
+    },
+    {
+      "frame_num": 3,
+      "tx_bits_shape": [
+        720
+      ],
+      "intermediate_saved": true,
+      "rx_bits_shape": [
+        1000
+      ],
+      "bits_compared": 720,
+      "bit_errors": 0,
+      "ber": 0.0,
+      "frame_success": true
     }
   ],
   "summary": {
-    "total_frames": 2,
-    "successful_frames": 2,
+    "total_frames": 3,
+    "successful_frames": 3,
     "frame_success_rate": 1.0,
     "total_bit_errors": 0,
-    "total_bits_tested": 1440,
+    "total_bits_tested": 2160,
     "overall_ber": 0.0
   }
 }

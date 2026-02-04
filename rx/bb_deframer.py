@@ -1,3 +1,4 @@
+# Stage 19 - BB Deframer (extract DF bits after stream deadaptation)
 # bb_deframer.py
 # =============================================================================
 # Parse DVB-S2 BBHEADER and extract DF from a Kbch-length BBFRAME (after

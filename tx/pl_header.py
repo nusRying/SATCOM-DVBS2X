@@ -1,3 +1,4 @@
+# Stage 09 - PL Header Generation (PLHEADER + PLSC)
 # pl_header.py
 # =============================================================================
 # DVB-S2 PLHEADER (ETSI EN 302 307 V1.3.1)

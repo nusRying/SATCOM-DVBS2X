@@ -1,3 +1,4 @@
+# Stage 03 - Stream Adaptation (scrambling/bit stuffing)
 import numpy as np
 
 # ============================================================
