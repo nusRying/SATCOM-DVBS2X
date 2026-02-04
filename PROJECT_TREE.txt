@@ -1,0 +1,107 @@
+╔════════════════════════════════════════════════════════════════╗
+║           DVBS2x PROJECT - ORGANIZED STRUCTURE                 ║
+╚════════════════════════════════════════════════════════════════╝
+
+📦 DVBS2x/
+│
+├── 📁 tx/                        ✅ TRANSMITTER CHAIN
+│   ├── run_dvbs2.py             Interactive TX script
+│   ├── BB_Frame.py              BB frame generation
+│   ├── stream_adaptation.py     Rate adaptation & scrambling
+│   ├── bch_encoding.py          BCH (t=12) encoding
+│   ├── ldpc_Encoding.py         LDPC (normalized min-sum)
+│   ├── pl_header.py             PL header generation
+│   ├── bbframe_report.py        Reporting & logging
+│   └── testing.py               Unit tests
+│
+├── 📁 rx/                        ✅ RECEIVER CHAIN
+│   ├── receiver_Chain.py        Main RX orchestrator
+│   ├── pl_descrambler.py        PL frame descrambling
+│   ├── pilot_removal_rx.py      Pilot extraction
+│   ├── pilot_phase_correction.py Phase estimation
+│   ├── constellation_demapper.py Soft demodulation
+│   ├── ldpc_decoder.py          LDPC normalized min-sum
+│   ├── bch_decoding.py          BCH error correction
+│   └── bb_deframer.py           BB frame deframing
+│
+├── 📁 common/                    🔗 SHARED MODULES
+│   ├── bit_interleaver.py       DVB-S2 bit interleaver
+│   ├── constellation_mapper.py  Constellation mapping
+│   ├── pilot_insertion.py       Pilot insertion
+│   └── pl_scrambler.py          PL scrambling/descrambling
+│
+├── 📁 tests/                     🧪 TEST SCRIPTS
+│   ├── test_tx_rx_loopback.py   ⭐ TX→RX end-to-end test
+│   ├── test_rx_loopback.py      RX chain validation
+│   ├── demo_tx_rx.py            Demo script
+│   ├── dvbs2x_full.py           Full integrated demo
+│   ├── crc8_decoder.py          CRC8 utilities
+│   └── test.ipynb               Jupyter notebook
+│
+├── 📁 data/                      📊 INPUT DATA
+│   ├── GS_data/                 Ground Station samples
+│   │   └── umair_gs_bits.csv    Test bits
+│   ├── TS_data/                 Transport Stream
+│   │   └── ts_15_packets_bits.csv
+│   └── Data/                    Additional data files
+│
+├── 📁 config/                    ⚙️ CONFIGURATION & MATRICES
+│   ├── ldpc_matrices/           LDPC parity matrices
+│   │   └── dvbs2xLDPCParityMatrices.mat
+│   ├── verification/            Verification files & tests
+│   └── archived_code/           Old/unused implementations
+│
+├── 📁 results/                   📈 OUTPUT & RESULTS
+│   ├── tx_run/                  Transmitter outputs
+│   │   ├── *_report.txt         TX reports
+│   │   ├── symbols_*.txt        TX symbols
+│   │   └── ...
+│   ├── loopback/                Loopback test results
+│   │   ├── loopback_stats.json  Performance stats
+│   │   ├── tx_bits_*.txt        TX input bits
+│   │   ├── rx_bits_*.txt        RX decoded bits
+│   │   └── ...
+│   └── dvbs2x/                  DVB-S2X demo output
+│
+├── 📁 docs/                      📖 DOCUMENTATION
+│   ├── README.md                Main documentation
+│   ├── en_302307v010301a.pdf    DVB-S2 standard (ETSI)
+│   └── flow.txt                 Processing flow diagram
+│
+├── 📄 requirements.txt           Python dependencies
+├── 📄 STRUCTURE.md              This file structure reference
+├── 📄 PROJECT_TREE.txt          Visual project tree
+├── 📄 .gitignore                Git ignore rules
+└── 📄 .gitattributes            Git attributes
+
+═══════════════════════════════════════════════════════════════
+
+📊 DIRECTORY STATISTICS:
+
+  Transmitter:        ~3,000 lines
+  Receiver:           ~1,200 lines
+  Common:             ~800 lines
+  Tests:              ~2,000 lines
+  Total:              ~7,000 lines of Python
+
+═══════════════════════════════════════════════════════════════
+
+🚀 QUICK COMMANDS:
+
+  # Activate environment
+  conda activate dvbs2
+
+  # Run transmitter
+  python tx/run_dvbs2.py
+
+  # Run TX→RX loopback test
+  python tests/test_tx_rx_loopback.py --max-frames 3 --esn0-db 5
+
+  # View results
+  cat results/loopback/loopback_stats.json
+
+  # Check git status
+  git status
+  git log --oneline -5
+
+═══════════════════════════════════════════════════════════════
