@@ -1,0 +1,22 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.ipynb_checkpoints
+
+# Large or generated assets
+results/
+dvbs2x_output/
+loopback_output/
+demo_output/
+dvbs2x_reports/
+
+# IDE / OS artifacts
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

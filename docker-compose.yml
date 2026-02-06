@@ -1,0 +1,12 @@
+services:
+  dvbs2x:
+    build: .
+    image: dvbs2x:latest
+    command: python tests/test_tx_rx_loopback.py --max-frames 1 --esn0-db 5
+    volumes:
+      - ./results:/app/results
+      - ./loopback_output:/app/loopback_output
+      - ./dvbs2x_output:/app/dvbs2x_output
+    # Uncomment to run interactively or override params:
+    # entrypoint: ["python", "tests/test_tx_rx_loopback.py"]
+    # command: ["--max-frames", "3", "--esn0-db", "8"]
