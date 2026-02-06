@@ -27,14 +27,14 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 # TX imports
-from tx.BB_Frame import build_bbheader, load_bits_csv, resolve_input_path
-from tx.stream_adaptation import stream_adaptation_rate, get_kbch
-from tx.bch_encoding import bch_encode_bbframe
-from tx.ldpc_Encoding import DVB_LDPC_Encoder
+from tx._01_BB_Frame import build_bbheader, load_bits_csv, resolve_input_path
+from tx._02_stream_adaptation import stream_adaptation_rate, get_kbch
+from tx._03_bch_encoding import bch_encode_bbframe
+from tx._04_ldpc_Encoding import DVB_LDPC_Encoder
 from common.bit_interleaver import dvbs2_bit_interleave
 from common.constellation_mapper import dvbs2_constellation_map
 from common.pilot_insertion import insert_pilots_into_payload
-from tx.pl_header import build_plheader, modcod_from_modulation_rate
+from tx._05_pl_header import build_plheader, modcod_from_modulation_rate
 from common.pl_scrambler import pl_scramble_full_plframe
 
 # RX imports
@@ -250,6 +250,7 @@ def run_tx_rx_loopback(
             tx_input_bits = in_bits[:DFL] if DFL > 0 else np.array([], dtype=np.uint8)
         
         if detailed_report:
+            # TX chain numbering follows printed stage order
             save_intermediate(tx_input_bits, "01_tx_input_bits", intermediate_dir, frame_num, "bits")
         
         print(f"01. Input Bits         : {len(tx_input_bits)} bits")
@@ -272,14 +273,14 @@ def run_tx_rx_loopback(
             bbframe = bbheader_bits
         
         if detailed_report:
-            save_intermediate(bbframe, "02_bbframe", intermediate_dir, frame_num, "bits")
+            save_intermediate(bbframe, "03_bbframe", intermediate_dir, frame_num, "bits")
         
         print(f"03. BB Frame           : {len(bbframe)} bits (header {len(bbheader_bits)} + data {len(tx_input_bits)})")
         
         adapted = stream_adaptation_rate(bbframe, fecframe, rate)
         
         if detailed_report:
-            save_intermediate(adapted, "03_adapted", intermediate_dir, frame_num, "bits")
+            save_intermediate(adapted, "04_adapted", intermediate_dir, frame_num, "bits")
         
         print(f"04. After Scrambling   : {len(adapted)} bits")
         
@@ -287,7 +288,7 @@ def run_tx_rx_loopback(
         bch_codeword = bch_encode_bbframe(adapted, fecframe, rate=rate)
         
         if detailed_report:
-            save_intermediate(bch_codeword, "04_bch_codeword", intermediate_dir, frame_num, "bits")
+            save_intermediate(bch_codeword, "05_bch_codeword", intermediate_dir, frame_num, "bits")
         
         print(f"05. BCH Encoded        : {len(bch_codeword)} bits")
         
@@ -295,7 +296,7 @@ def run_tx_rx_loopback(
         ldpc_codeword = ldpc_encoder.encode(bch_codeword, fecframe, rate)
         
         if detailed_report:
-            save_intermediate(ldpc_codeword, "05_ldpc_codeword", intermediate_dir, frame_num, "bits")
+            save_intermediate(ldpc_codeword, "06_ldpc_codeword", intermediate_dir, frame_num, "bits")
         
         print(f"06. LDPC Encoded       : {len(ldpc_codeword)} bits")
         
@@ -303,7 +304,7 @@ def run_tx_rx_loopback(
         interleaved = dvbs2_bit_interleave(ldpc_codeword, modulation)
         
         if detailed_report:
-            save_intermediate(interleaved, "06_interleaved", intermediate_dir, frame_num, "bits")
+            save_intermediate(interleaved, "07_interleaved", intermediate_dir, frame_num, "bits")
         
         print(f"07. Bit Interleaved    : {len(interleaved)} bits")
         
@@ -311,7 +312,7 @@ def run_tx_rx_loopback(
         symbols = dvbs2_constellation_map(interleaved, modulation)
         
         if detailed_report:
-            save_intermediate(symbols, "07_constellation_symbols", intermediate_dir, frame_num, "complex")
+            save_intermediate(symbols, "08_constellation_symbols", intermediate_dir, frame_num, "complex")
             # Plot constellation
             plot_constellation(
                 symbols,
@@ -334,7 +335,7 @@ def run_tx_rx_loopback(
         payload_with_pilots, _ = insert_pilots_into_payload(symbols, pilots_on=pilots_on, fecframe=fecframe)
         
         if detailed_report:
-            save_intermediate(payload_with_pilots, "08_with_pilots", intermediate_dir, frame_num, "complex")
+            save_intermediate(payload_with_pilots, "10_with_pilots", intermediate_dir, frame_num, "complex")
         
         print(f"10. Payload+Pilots     : {len(payload_with_pilots)} symbols")
         
@@ -342,7 +343,7 @@ def run_tx_rx_loopback(
         plframe_tx = np.concatenate([plh_syms, payload_with_pilots])
         
         if detailed_report:
-            save_intermediate(plframe_tx, "09_plframe_tx", intermediate_dir, frame_num, "complex")
+            save_intermediate(plframe_tx, "11_plframe_tx", intermediate_dir, frame_num, "complex")
         
         print(f"11. Full PLFRAME       : {len(plframe_tx)} symbols (header {len(plh_syms)} + payload {len(payload_with_pilots)})")
         
@@ -350,7 +351,7 @@ def run_tx_rx_loopback(
         plframe_scrambled = pl_scramble_full_plframe(plframe_tx, scrambling_code=scrambling_code, plheader_len=len(plh_syms))
         
         if detailed_report:
-            save_intermediate(plframe_scrambled, "10_plframe_scrambled", intermediate_dir, frame_num, "complex")
+            save_intermediate(plframe_scrambled, "12_plframe_scrambled", intermediate_dir, frame_num, "complex")
             # Plot final TX constellation with pilots
             plot_constellation(
                 plframe_scrambled,
@@ -383,7 +384,8 @@ def run_tx_rx_loopback(
             print(f"Noiseless Channel")
         
         if detailed_report:
-            save_intermediate(plframe_rx, "11_plframe_rx", intermediate_dir, frame_num, "complex")
+            # Channel output (post-AWGN)
+            save_intermediate(plframe_rx, "13_plframe_rx", intermediate_dir, frame_num, "complex")
             # Plot RX constellation (with noise)
             plot_constellation(
                 plframe_rx,
@@ -413,21 +415,21 @@ def run_tx_rx_loopback(
         # Extract and save intermediate RX outputs
         if detailed_report:
             if rx_output.get("descrambled") is not None:
-                save_intermediate(rx_output["descrambled"], "12_descrambled", intermediate_dir, frame_num, "complex")
+                save_intermediate(rx_output["descrambled"], "01_descrambled", intermediate_dir, frame_num, "complex")
             if rx_output.get("payload_raw") is not None:
-                save_intermediate(rx_output["payload_raw"], "13_payload_raw", intermediate_dir, frame_num, "complex")
+                save_intermediate(rx_output["payload_raw"], "02_payload_raw", intermediate_dir, frame_num, "complex")
             if rx_output.get("payload_corrected") is not None:
-                save_intermediate(rx_output["payload_corrected"], "14_payload_corrected", intermediate_dir, frame_num, "complex")
+                save_intermediate(rx_output["payload_corrected"], "03_payload_corrected", intermediate_dir, frame_num, "complex")
             if rx_output.get("llrs_interleaved") is not None:
-                save_intermediate(rx_output["llrs_interleaved"], "15_llrs_interleaved", intermediate_dir, frame_num, "real")
+                save_intermediate(rx_output["llrs_interleaved"], "04_llrs_interleaved", intermediate_dir, frame_num, "real")
             if rx_output.get("llrs_deinterleaved") is not None:
-                save_intermediate(rx_output["llrs_deinterleaved"], "16_llrs_deinterleaved", intermediate_dir, frame_num, "real")
+                save_intermediate(rx_output["llrs_deinterleaved"], "05_llrs_deinterleaved", intermediate_dir, frame_num, "real")
             if rx_output.get("ldpc_bits") is not None:
-                save_intermediate(rx_output["ldpc_bits"], "17_ldpc_decoded", intermediate_dir, frame_num, "bits")
+                save_intermediate(rx_output["ldpc_bits"], "06_ldpc_decoded", intermediate_dir, frame_num, "bits")
             if rx_output.get("bch_payload") is not None:
-                save_intermediate(rx_output["bch_payload"], "18_bch_decoded", intermediate_dir, frame_num, "bits")
+                save_intermediate(rx_output["bch_payload"], "07_bch_decoded", intermediate_dir, frame_num, "bits")
             if rx_output.get("df_bits") is not None:
-                save_intermediate(rx_output["df_bits"], "19_df_bits", intermediate_dir, frame_num, "bits")
+                save_intermediate(rx_output["df_bits"], "08_df_bits", intermediate_dir, frame_num, "bits")
         
         print(f"01. Descrambled        : {len(rx_output.get('descrambled', []))} symbols")
         print(f"02. Pilot Removed      : {len(rx_output.get('payload_raw', []))} symbols")

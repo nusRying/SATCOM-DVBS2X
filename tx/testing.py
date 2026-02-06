@@ -9,7 +9,7 @@ import sys
 # ------------------------------------------------------------
 
 PYTHON = sys.executable
-SCRIPT = "BB_Frame.py"   # must be in same directory
+SCRIPT = "_01_BB_Frame.py"   # must be in same directory
 
 
 # ------------------------------------------------------------
@@ -143,10 +143,10 @@ def test_ts_stream():
 # CRC-8 UNIT TESTS (DIRECT, NO SUBPROCESS)
 # ============================================================
 
-from BB_Frame import PacketizedCrc8Stream
-from stream_adaptation import get_kbch, pad_bbframe_rate, stream_adaptation_rate
-from bch_encoding import bch_encode_bbframe, BCH_PARAMS
-from ldpc_Encoding import DVB_LDPC_Encoder, ldpc_encode_bits
+from _01_BB_Frame import PacketizedCrc8Stream
+from _02_stream_adaptation import get_kbch, pad_bbframe_rate, stream_adaptation_rate
+from _03_bch_encoding import bch_encode_bbframe, BCH_PARAMS
+from _04_ldpc_Encoding import DVB_LDPC_Encoder, ldpc_encode_bits
 
 
 def test_crc_single_packet():
@@ -188,7 +188,7 @@ def test_crc_replaces_next_sync():
 
 
 def test_crc_chaining_multiple_packets():
-    from BB_Frame import PacketizedCrc8Stream
+    from _01_BB_Frame import PacketizedCrc8Stream
 
     upl = 40
     packets = []

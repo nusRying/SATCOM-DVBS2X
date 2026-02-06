@@ -7,7 +7,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 import numpy as np
 
-from tx.BB_Frame import (
+from tx._01_BB_Frame import (
     dvbs2_bbframe_generator_from_bits_csv,
     build_bbheader,
     PacketizedCrc8Stream,
@@ -16,7 +16,7 @@ from tx.BB_Frame import (
     resolve_input_path
 )
 
-from tx.stream_adaptation import (
+from tx._02_stream_adaptation import (
     get_kbch,
     pad_bbframe_rate,
     save_bbframe_to_file_rate,
@@ -24,8 +24,8 @@ from tx.stream_adaptation import (
 )
 
 from tx.bbframe_report import BBFrameReport
-from tx.bch_encoding import BCH_PARAMS, bch_encode_bbframe
-from tx.ldpc_Encoding import DVB_LDPC_Encoder
+from tx._03_bch_encoding import BCH_PARAMS, bch_encode_bbframe
+from tx._04_ldpc_Encoding import DVB_LDPC_Encoder
 
 from common.bit_interleaver import (
     dvbs2_bit_interleave,
@@ -33,11 +33,11 @@ from common.bit_interleaver import (
 )
 
 from common.constellation_mapper import dvbs2_constellation_map
-from tx.pl_header import modcod_from_modulation_rate, build_plheader
+from tx._05_pl_header import modcod_from_modulation_rate, build_plheader
 from common.pl_scrambler import pl_scramble_full_plframe
 from common.pilot_insertion import insert_pilots_into_payload
 from tx.plot_qpsk_fft import plot_qpsk_fft, plot_dvbs2_qpsk_spectrum
-from tx.bb_filter import dvbs2_bb_filter
+from tx._06_bb_filter import dvbs2_bb_filter
 
 BITS_CSV_PATH = os.path.join(ROOT, "data", "GS_data", "umair_gs_bits.csv")
 MAX_FRAMES    = 3

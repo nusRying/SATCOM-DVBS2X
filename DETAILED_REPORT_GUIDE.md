@@ -96,24 +96,25 @@ results/
 │   ├── tx_bits_frame1.txt           # Input bits per frame
 │   └── intermediate/                # Detailed stage outputs
 │       ├── frame1_01_tx_input_bits.txt
-│       ├── frame1_02_bbframe.txt
-│       ├── frame1_03_adapted.txt
-│       ├── frame1_04_bch_codeword.txt
-│       ├── frame1_05_ldpc_codeword.txt
-│       ├── frame1_06_interleaved.txt
-│       ├── frame1_07_constellation_symbols.txt
-│       ├── frame1_08_with_pilots.txt
-│       ├── frame1_09_plframe_tx.txt
-│       ├── frame1_10_plframe_scrambled.txt
-│       ├── frame1_11_plframe_rx.txt
-│       ├── frame1_12_descrambled.txt
-│       ├── frame1_13_payload_raw.txt
-│       ├── frame1_14_payload_corrected.txt
-│       ├── frame1_15_llrs_interleaved.txt
-│       ├── frame1_16_llrs_deinterleaved.txt
-│       ├── frame1_17_ldpc_decoded.txt
-│       ├── frame1_18_bch_decoded.txt
-│       └── frame1_19_df_bits.txt
+│       ├── frame1_03_bbframe.txt
+│       ├── frame1_04_adapted.txt
+│       ├── frame1_05_bch_codeword.txt
+│       ├── frame1_06_ldpc_codeword.txt
+│       ├── frame1_07_interleaved.txt
+│       ├── frame1_08_constellation_symbols.txt
+│       ├── frame1_10_with_pilots.txt
+│       ├── frame1_11_plframe_tx.txt
+│       ├── frame1_12_plframe_scrambled.txt
+│       ├── frame1_13_plframe_rx.txt
+│       ├── frame1_01_descrambled.txt
+│       ├── frame1_02_payload_raw.txt
+│       ├── frame1_03_payload_corrected.txt
+│       ├── frame1_04_llrs_interleaved.txt
+│       ├── frame1_05_llrs_deinterleaved.txt
+│       ├── frame1_06_ldpc_decoded.txt
+│       ├── frame1_07_bch_decoded.txt
+│       └── frame1_08_df_bits.txt
+│       # RX numbering restarts at 01 because it is local to the RX chain
 │       └── ... (same for frames 2, 3, ...)
 ```
 
@@ -182,7 +183,7 @@ results/
 
 ### Real-Valued Files (.txt) - LLRs
 - **Log-likelihood ratios**: Single column of floating-point values
-- **Example**: frame1_15_llrs_interleaved.txt
+- **Example**: frame1_04_llrs_interleaved.txt
 ```
 +5.27924949
 +7.84915429
@@ -204,7 +205,7 @@ wc -l results/loopback/intermediate/frame1_01_tx_input_bits.txt  # Should be 720
 wc -l results/loopback/intermediate/frame1_07_constellation_symbols.txt  # Should be 8100
 
 # Count LLRs
-wc -l results/loopback/intermediate/frame1_15_llrs_interleaved.txt  # Should be 16200
+wc -l results/loopback/intermediate/frame1_04_llrs_interleaved.txt  # Should be 16200
 ```
 
 ### 2. Analyze Constellation Quality
@@ -238,7 +239,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load LLRs before deinterleaving
-llrs = np.loadtxt('results/loopback/intermediate/frame1_15_llrs_interleaved.txt')
+llrs = np.loadtxt('results/loopback/intermediate/frame1_04_llrs_interleaved.txt')
 
 # Statistics
 print(f"LLR Mean: {np.mean(llrs):.3f}")
@@ -269,10 +270,10 @@ import numpy as np
 tx_bits = np.loadtxt('results/loopback/intermediate/frame1_01_tx_input_bits.txt', dtype=int)
 
 # Load decoded bits before BCH (LDPC output)
-ldpc_bits = np.loadtxt('results/loopback/intermediate/frame1_17_ldpc_decoded.txt', dtype=int)
+ldpc_bits = np.loadtxt('results/loopback/intermediate/frame1_06_ldpc_decoded.txt', dtype=int)
 
 # Load final bits (after BCH)
-final_bits = np.loadtxt('results/loopback/intermediate/frame1_19_df_bits.txt', dtype=int)
+final_bits = np.loadtxt('results/loopback/intermediate/frame1_08_df_bits.txt', dtype=int)
 
 # Check for errors at each stage
 print("Error Tracking:")

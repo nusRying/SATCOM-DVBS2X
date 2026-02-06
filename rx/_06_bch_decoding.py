@@ -15,7 +15,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from tx.bch_encoding import (
+from tx._03_bch_encoding import (
     BCH_PARAMS,
     dvbs2_bch_generator_poly,
     bits_msb_to_poly_int,

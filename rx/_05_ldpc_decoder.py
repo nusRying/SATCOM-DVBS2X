@@ -227,7 +227,7 @@ def _self_test():
     Loopback test: encode random bits, add tiny noise LLRs, decode and verify.
     Skips if MAT file is unavailable.
     """
-    from ldpc_Encoding import DVB_LDPC_Encoder
+    from _04_ldpc_Encoding import DVB_LDPC_Encoder
 
     mat_default = os.path.join(
         os.path.dirname(__file__),

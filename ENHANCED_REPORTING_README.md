@@ -58,15 +58,17 @@ results/loopback/
 ├── rx_bits_frame1.txt                     # Decoded output bits
 └── intermediate/
     ├── frame1_01_tx_input_bits.txt        # TX stage 1
-    ├── frame1_02_bbframe.txt              # TX stage 2
-    ├── frame1_03_adapted.txt              # TX stage 3
+    ├── frame1_03_bbframe.txt              # TX stage 3
+    ├── frame1_04_adapted.txt              # TX stage 4
     ...
-    ├── frame1_12_scrambled.txt            # TX stage 12 (channel input)
-    ├── frame1_12_descrambled.txt          # RX stage 1
-    ├── frame1_13_payload_raw.txt          # RX stage 2
+    ├── frame1_12_plframe_scrambled.txt     # TX stage 12 (channel input)
+    ├── frame1_13_plframe_rx.txt            # Channel output
+    ├── frame1_01_descrambled.txt           # RX stage 1
+    ├── frame1_02_payload_raw.txt           # RX stage 2
     ...
-    └── frame1_19_df_bits.txt              # RX stage 8 (final output)
+    └── frame1_08_df_bits.txt               # RX stage 8 (final output)
 ```
+RX filenames restart at `01` because numbering is local to the RX chain.
 
 ## Console Output Example
 
@@ -166,7 +168,7 @@ Output includes:
 import numpy as np
 
 # Load constellation symbols
-symbols = np.loadtxt('results/loopback/intermediate/frame1_07_constellation_symbols.txt',
+symbols = np.loadtxt('results/loopback/intermediate/frame1_08_constellation_symbols.txt',
                      dtype=complex)
 
 # Check power
@@ -174,7 +176,7 @@ power = np.mean(np.abs(symbols)**2)
 print(f"Symbol power: {power:.4f}")  # Should be ~1.0
 
 # Load LLRs
-llrs = np.loadtxt('results/loopback/intermediate/frame1_15_llrs_interleaved.txt')
+llrs = np.loadtxt('results/loopback/intermediate/frame1_04_llrs_interleaved.txt')
 print(f"LLR mean: {np.mean(llrs):.3f}")
 print(f"LLR std: {np.std(llrs):.3f}")
 ```

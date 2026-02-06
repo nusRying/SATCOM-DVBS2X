@@ -31,13 +31,13 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from tx.stream_adaptation import (
+from tx._02_stream_adaptation import (
     get_kbch,
     pad_bbframe_rate,
     stream_adaptation_rate,
 )
-from tx.bch_encoding import bch_encode_bbframe, BCH_PARAMS
-from tx.ldpc_Encoding import DVB_LDPC_Encoder
+from tx._03_bch_encoding import bch_encode_bbframe, BCH_PARAMS
+from tx._04_ldpc_Encoding import DVB_LDPC_Encoder
 
 
 def _read_bits_file(path: str) -> np.ndarray:

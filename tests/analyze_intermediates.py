@@ -115,31 +115,31 @@ class IntermediateAnalyzer:
             input_bits = self.load_bits(1, "tx_input_bits")
             results["01_tx_input"] = self.analyze_bits(input_bits, "TX Input Bits")
             
-            bb_frame = self.load_bits(2, "bbframe")
-            results["02_bb_frame"] = self.analyze_bits(bb_frame, "BB Frame")
+            bb_frame = self.load_bits(3, "bbframe")
+            results["03_bb_frame"] = self.analyze_bits(bb_frame, "BB Frame")
             
-            adapted = self.load_bits(3, "adapted")
-            results["03_adapted"] = self.analyze_bits(adapted, "After Scrambling")
+            adapted = self.load_bits(4, "adapted")
+            results["04_adapted"] = self.analyze_bits(adapted, "After Scrambling")
             
-            bch = self.load_bits(4, "bch_codeword")
-            results["04_bch"] = self.analyze_bits(bch, "BCH Codeword")
+            bch = self.load_bits(5, "bch_codeword")
+            results["05_bch"] = self.analyze_bits(bch, "BCH Codeword")
             
-            ldpc = self.load_bits(5, "ldpc_codeword")
-            results["05_ldpc"] = self.analyze_bits(ldpc, "LDPC Codeword")
+            ldpc = self.load_bits(6, "ldpc_codeword")
+            results["06_ldpc"] = self.analyze_bits(ldpc, "LDPC Codeword")
             
-            interleaved = self.load_bits(6, "interleaved")
-            results["06_interleaved"] = self.analyze_bits(interleaved, "Bit Interleaved")
+            interleaved = self.load_bits(7, "interleaved")
+            results["07_interleaved"] = self.analyze_bits(interleaved, "Bit Interleaved")
             
             # Constellation symbols
-            symbols = self.load_complex(7, "constellation_symbols")
-            results["07_constellation"] = self.analyze_complex(symbols, "Constellation Symbols")
+            symbols = self.load_complex(8, "constellation_symbols")
+            results["08_constellation"] = self.analyze_complex(symbols, "Constellation Symbols")
             
             # PLFRAME
-            plframe = self.load_complex(9, "plframe_tx")
-            results["09_plframe"] = self.analyze_complex(plframe, "PLFRAME TX")
+            plframe = self.load_complex(11, "plframe_tx")
+            results["11_plframe"] = self.analyze_complex(plframe, "PLFRAME TX")
             
-            scrambled = self.load_complex(10, "plframe_scrambled")
-            results["10_scrambled"] = self.analyze_complex(scrambled, "PL Scrambled")
+            scrambled = self.load_complex(12, "plframe_scrambled")
+            results["12_scrambled"] = self.analyze_complex(scrambled, "PL Scrambled")
             
         except FileNotFoundError as e:
             print(f"Warning: {e}")
@@ -151,32 +151,32 @@ class IntermediateAnalyzer:
         results = {}
         
         try:
-            # RX stages - updated numbering
-            descrambled = self.load_complex(12, "descrambled")
-            results["12_descrambled"] = self.analyze_complex(descrambled, "Descrambled")
+            # RX stages - numbering is local to RX chain
+            descrambled = self.load_complex(1, "descrambled")
+            results["01_descrambled"] = self.analyze_complex(descrambled, "Descrambled")
             
-            payload_raw = self.load_complex(13, "payload_raw")
-            results["13_payload_raw"] = self.analyze_complex(payload_raw, "Payload Raw")
+            payload_raw = self.load_complex(2, "payload_raw")
+            results["02_payload_raw"] = self.analyze_complex(payload_raw, "Payload Raw")
             
-            payload_corrected = self.load_complex(14, "payload_corrected")
-            results["14_payload_corrected"] = self.analyze_complex(payload_corrected, "Payload Corrected")
+            payload_corrected = self.load_complex(3, "payload_corrected")
+            results["03_payload_corrected"] = self.analyze_complex(payload_corrected, "Payload Corrected")
             
             # LLRs
-            llrs_int = self.load_real(15, "llrs_interleaved")
-            results["15_llrs_int"] = self.analyze_llr(llrs_int, "LLRs Interleaved")
+            llrs_int = self.load_real(4, "llrs_interleaved")
+            results["04_llrs_int"] = self.analyze_llr(llrs_int, "LLRs Interleaved")
             
-            llrs_deint = self.load_real(16, "llrs_deinterleaved")
-            results["16_llrs_deint"] = self.analyze_llr(llrs_deint, "LLRs Deinterleaved")
+            llrs_deint = self.load_real(5, "llrs_deinterleaved")
+            results["05_llrs_deint"] = self.analyze_llr(llrs_deint, "LLRs Deinterleaved")
             
             # Decoded outputs
-            ldpc_decoded = self.load_bits(17, "ldpc_decoded")
-            results["17_ldpc_decoded"] = self.analyze_bits(ldpc_decoded, "LDPC Decoded")
+            ldpc_decoded = self.load_bits(6, "ldpc_decoded")
+            results["06_ldpc_decoded"] = self.analyze_bits(ldpc_decoded, "LDPC Decoded")
             
-            bch_decoded = self.load_bits(18, "bch_decoded")
-            results["18_bch_decoded"] = self.analyze_bits(bch_decoded, "BCH Decoded")
+            bch_decoded = self.load_bits(7, "bch_decoded")
+            results["07_bch_decoded"] = self.analyze_bits(bch_decoded, "BCH Decoded")
             
-            final_bits = self.load_bits(19, "df_bits")
-            results["19_final_bits"] = self.analyze_bits(final_bits, "Final DF Bits")
+            final_bits = self.load_bits(8, "df_bits")
+            results["08_final_bits"] = self.analyze_bits(final_bits, "Final DF Bits")
             
         except FileNotFoundError as e:
             print(f"Warning: {e}")
@@ -237,7 +237,7 @@ class IntermediateAnalyzer:
         print("-" * 70)
         try:
             tx_bits = self.load_bits(1, "tx_input_bits")
-            final_bits = self.load_bits(19, "df_bits")
+            final_bits = self.load_bits(8, "df_bits")
             comparison = self.compare_bits(tx_bits, final_bits)
             
             for stat_name, stat_val in comparison.items():

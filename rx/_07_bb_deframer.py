@@ -15,8 +15,8 @@ if ROOT not in sys.path:
 import numpy as np
 from typing import Dict, Any, Tuple
 
-from tx.BB_Frame import dvbs2_crc8
-from tx.stream_adaptation import get_kbch
+from tx._01_BB_Frame import dvbs2_crc8
+from tx._02_stream_adaptation import get_kbch
 
 
 def _as_bits(x: np.ndarray, name: str = "bits") -> np.ndarray:
@@ -83,7 +83,7 @@ def deframe_bb(scrambled_kbch: np.ndarray, fecframe: str, rate: str) -> Tuple[np
 
 def _self_test():
     # Build a dummy BBHEADER with DFL=10, UPL=0, CRC correct
-    from BB_Frame import build_bbheader
+    from _01_BB_Frame import build_bbheader
     fec = "short"
     rate = "1/2"
     dfl = 10

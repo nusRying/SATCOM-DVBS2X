@@ -18,15 +18,15 @@ if ROOT not in sys.path:
 import numpy as np
 from typing import Dict, Any
 
-from rx.pl_descrambler import pl_descramble_full_plframe
-from rx.pilot_removal_rx import remove_pilots_from_plframe
-from rx.pilot_phase_correction import apply_pilot_phase_correction
-from rx.constellation_demapper import dvbs2_constellation_demapper
+from rx._01_pl_descrambler import pl_descramble_full_plframe
+from rx._02_pilot_removal_rx import remove_pilots_from_plframe
+from rx._03_pilot_phase_correction import apply_pilot_phase_correction
+from rx._04_constellation_demapper import dvbs2_constellation_demapper
 from common.bit_interleaver import dvbs2_llr_deinterleave
-from rx.ldpc_decoder import DVB_LDPC_Decoder
-from rx.bch_decoding import bch_check_and_strip
-from tx.stream_adaptation import stream_deadaptation_rate, BCH_PARAMS
-from rx.bb_deframer import deframe_bb
+from rx._05_ldpc_decoder import DVB_LDPC_Decoder
+from rx._06_bch_decoding import bch_check_and_strip
+from tx._02_stream_adaptation import stream_deadaptation_rate, BCH_PARAMS
+from rx._07_bb_deframer import deframe_bb
 
 
 def process_rx_plframe(
@@ -141,7 +141,7 @@ def _self_test() -> None:
     """
     from common.pilot_insertion import insert_pilots_into_payload, PILOT_SYMBOLS_36
     from common.pl_scrambler import pl_scramble_full_plframe
-    from tx.pl_header import build_plheader, modcod_from_modulation_rate
+    from tx._05_pl_header import build_plheader, modcod_from_modulation_rate
 
     rng = np.random.default_rng(1)
     fec = "short"

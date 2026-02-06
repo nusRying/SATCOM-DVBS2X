@@ -9,7 +9,7 @@ if ROOT not in sys.path:
 import numpy as np
 import csv
 from tx.bbframe_report import BBFrameReport
-from tx.stream_adaptation import get_kbch, stream_adaptation_rate
+from tx._02_stream_adaptation import get_kbch, stream_adaptation_rate
 
 
 # ============================================================

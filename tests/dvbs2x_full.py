@@ -19,14 +19,14 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 # TX imports
-from tx.BB_Frame import build_bbheader, load_bits_csv, resolve_input_path
-from tx.stream_adaptation import stream_adaptation_rate, get_kbch
-from tx.bch_encoding import bch_encode_bbframe
-from tx.ldpc_Encoding import DVB_LDPC_Encoder
+from tx._01_BB_Frame import build_bbheader, load_bits_csv, resolve_input_path
+from tx._02_stream_adaptation import stream_adaptation_rate, get_kbch
+from tx._03_bch_encoding import bch_encode_bbframe
+from tx._04_ldpc_Encoding import DVB_LDPC_Encoder
 from common.bit_interleaver import dvbs2_bit_interleave
 from common.constellation_mapper import dvbs2_constellation_map
 from common.pilot_insertion import insert_pilots_into_payload
-from tx.pl_header import build_plheader, modcod_from_modulation_rate
+from tx._05_pl_header import build_plheader, modcod_from_modulation_rate
 from common.pl_scrambler import pl_scramble_full_plframe
 
 # RX imports
