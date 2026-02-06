@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Prevent Python from writing .pyc files and keep stdout unbuffered
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -24,5 +24,5 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy the rest of the project
 COPY . /app
 
-# Default to showing test usage; override with `docker run ... <command>`
+# Default command: show loopback test options
 CMD ["python", "tests/test_tx_rx_loopback.py", "--help"]

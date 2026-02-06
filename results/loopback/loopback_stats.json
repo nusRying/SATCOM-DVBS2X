@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-06T11:45:25.365157",
+  "timestamp": "2026-02-06T11:52:23.140173",
   "config": {
     "fecframe": "short",
     "rate": "1/2",
@@ -7,8 +7,8 @@
     "pilots_on": true,
     "scrambling_code": 0,
     "esn0_db": null,
-    "max_frames": 1,
-    "detailed_report": false
+    "max_frames": 3,
+    "detailed_report": true
   },
   "frames": [
     {
@@ -16,7 +16,35 @@
       "tx_bits_shape": [
         720
       ],
-      "intermediate_saved": false,
+      "intermediate_saved": true,
+      "rx_bits_shape": [
+        1000
+      ],
+      "bits_compared": 720,
+      "bit_errors": 0,
+      "ber": 0.0,
+      "frame_success": true
+    },
+    {
+      "frame_num": 2,
+      "tx_bits_shape": [
+        720
+      ],
+      "intermediate_saved": true,
+      "rx_bits_shape": [
+        1000
+      ],
+      "bits_compared": 720,
+      "bit_errors": 0,
+      "ber": 0.0,
+      "frame_success": true
+    },
+    {
+      "frame_num": 3,
+      "tx_bits_shape": [
+        720
+      ],
+      "intermediate_saved": true,
       "rx_bits_shape": [
         1000
       ],
@@ -27,11 +55,11 @@
     }
   ],
   "summary": {
-    "total_frames": 1,
-    "successful_frames": 1,
+    "total_frames": 3,
+    "successful_frames": 3,
     "frame_success_rate": 1.0,
     "total_bit_errors": 0,
-    "total_bits_tested": 720,
+    "total_bits_tested": 2160,
     "overall_ber": 0.0
   }
 }
