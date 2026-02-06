@@ -1,15 +1,19 @@
+# Python
 __pycache__/
 *.pyc
-*.pyo
 .venv/
-.pytest_cache/
-.ipynb_checkpoints/
+.env
 
-# Generated reports/artifacts
-dvbs2_full_report.txt
-bbframe_*.txt
-bch_codeword_*.txt
-interleaved_*.txt
-ldpc_*.txt
-ldpc_codeword_*.txt
-symbols_*.txt
+# IDEs
+.vscode/
+.idea/
+
+# Outputs
+results/
+loopback_output/
+intermediate/
+*.png
+*.log
+
+# OS
+.DS_Store

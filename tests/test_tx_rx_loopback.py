@@ -238,7 +238,7 @@ def run_tx_rx_loopback(
         # =====================================================================
         # TX SIDE: Generate PLFRAME
         # =====================================================================
-        print("\n📤 TRANSMITTER CHAIN")
+        print("\nTRANSMITTER CHAIN")
         print("-" * 70)
         
         # Get TX input bits (for later comparison)
@@ -364,7 +364,7 @@ def run_tx_rx_loopback(
         # =====================================================================
         # CHANNEL SIMULATION: Add AWGN noise if specified
         # =====================================================================
-        print(f"\n📡 CHANNEL")
+        print(f"\nCHANNEL")
         print("-" * 70)
         
         if esn0_db is not None:
@@ -396,7 +396,7 @@ def run_tx_rx_loopback(
         # =====================================================================
         # RX SIDE: Process received PLFRAME
         # =====================================================================
-        print(f"\n📥 RECEIVER CHAIN")
+        print(f"\nRECEIVER CHAIN")
         print("-" * 70)
         
         rx_output = process_rx_plframe(
@@ -443,7 +443,7 @@ def run_tx_rx_loopback(
         # =====================================================================
         # EVALUATE RESULTS
         # =====================================================================
-        print(f"\n📊 PERFORMANCE ANALYSIS")
+        print(f"\nPERFORMANCE ANALYSIS")
         print("-" * 70)
         
         rx_df_bits = rx_output.get("df_bits")
@@ -475,7 +475,7 @@ def run_tx_rx_loopback(
         print(f"Bits Compared          : {bits_to_compare} (user data only)")
         print(f"Bit Errors             : {errors}/{bits_to_compare}")
         print(f"BER                    : {ber:.6e}")
-        print(f"Frame Success          : {'✅ YES' if success else '❌ NO'}")
+        print(f"Frame Success          : {'YES' if success else 'NO'}")
 
         # Add LDPC metrics if available
         if rx_output.get("ldpc_meta") is not None:
@@ -490,7 +490,7 @@ def run_tx_rx_loopback(
                 print(f"Phase Error Estimate   : {phase_meta.get('phase_estimate', 0):.4f} rad")
         else:
             frame_stats["error"] = "RX decoding failed"
-            print("❌ RX Decoding FAILED")
+            print("RX Decoding FAILED")
         
         stats["frames"].append(frame_stats)
         

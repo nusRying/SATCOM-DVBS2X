@@ -1,7 +1,5 @@
-numpy>=1.22
-scipy>=1.10
-matplotlib>=3.8
-pandas>=2.1
-pyldpc>=0.1.9
-bchlib>=0.7.0
-scikit-dsp-comm>=0.2.9
+numpy
+scipy
+matplotlib
+pytest
+flake8
