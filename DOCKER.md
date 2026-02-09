@@ -1,17 +1,14 @@
 # Docker Usage
 
-This image provides a reproducible environment for the DVB-S2X TX/RX code and tests.
+Reproducible environment for the DVB-S2/S2X TX/RX toolchain. Image is built from `python:3.11-slim` with BLAS/LAPACK build tooling; repo lives at `/app` and `PYTHONPATH` is set accordingly.
 
 ## Build
-
 ```bash
 docker build -t dvbs2x .
 ```
 
-## Run a loopback test (example)
-
-Outputs land in mounted host folders so they persist after the container exits.
-
+## Quick run: loopback test
+Persists outputs to host volumes so artifacts survive container exit.
 ```bash
 docker run --rm -it \
   -v ${PWD}/results:/app/results \
@@ -19,41 +16,43 @@ docker run --rm -it \
   dvbs2x \
   python tests/test_tx_rx_loopback.py --max-frames 1 --esn0-db 5
 ```
-
-To see available arguments:
-
+List options:
 ```bash
 docker run --rm dvbs2x
-# or
 docker run --rm dvbs2x python tests/test_tx_rx_loopback.py --help
 ```
 
-## Using docker-compose
-
+## docker-compose
 ```bash
 docker compose up --build
 ```
-
 Defaults to `--max-frames 1 --esn0-db 5` and mounts:
-- `./results` → `/app/results`
-- `./loopback_output` → `/app/loopback_output`
-- `./dvbs2x_output` → `/app/dvbs2x_output`
+- `./results` -> `/app/results`
+- `./loopback_output` -> `/app/loopback_output`
+- `./dvbs2x_output` -> `/app/dvbs2x_output`
 
-Edit `docker-compose.yml` to change the command or add more volumes (e.g., to expose other output folders).
+Edit `docker-compose.yml` to change the command or add volumes (e.g., `demo_output/`).
 
 ## Custom commands
-
-- Run transmitter only:  
+- Transmitter only:
   ```bash
   docker run --rm dvbs2x python tx/run_dvbs2.py
   ```
-- Open a shell for debugging:  
+- Interactive shell:
   ```bash
   docker run --rm -it dvbs2x bash
   ```
 
-## Notes
+## What’s in the image
+- Base: `python:3.11-slim`.
+- Apt: `build-essential`, `gfortran`, `libopenblas-dev`, `liblapack-dev`.
+- Python deps: `requirements.txt` installed during build.
+- Default CMD: `python tests/test_tx_rx_loopback.py --help` (override with your own command).
 
-- Base image: `python:3.10-slim` with BLAS/LAPACK build tools for SciPy/NumPy.
-- `PYTHONPATH` is set to `/app` so imports work anywhere in the repo.
-- If you add new Python dependencies, update `requirements.txt` and rebuild.
+## Volumes & outputs
+- Mount `results/`, `loopback_output/`, `dvbs2x_output/` to capture BER reports, plots, and intermediate dumps. Add more mounts if you write elsewhere.
+
+## Tips / Troubleshooting
+- Adding deps: update `requirements.txt` then rebuild. Layer cache is preserved if `requirements.txt` is unchanged.
+- Need different Python version? Change `FROM` line and rebuild.
+- To inspect intermediate files, launch a shell with the same volume mounts you use for tests.

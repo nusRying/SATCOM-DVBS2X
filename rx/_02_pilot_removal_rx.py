@@ -63,6 +63,7 @@ def remove_pilots_from_plframe(
     rx_plframe: np.ndarray,
     fecframe: str,
     plheader_len: int = PLHEADER_LEN_SYMS,
+    pilots_on: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """
     Remove pilot blocks from a DVB-S2 PLFRAME (after descrambling).
@@ -76,6 +77,9 @@ def remove_pilots_from_plframe(
         "normal" or "short"
     plheader_len : int
         PLHEADER length in symbols (default 90 for DVB-S2).
+    pilots_on : bool
+        If False, pilots are expected to be absent (TYPE.PILOTS=0) and the
+        function returns the payload unchanged with an empty pilots array.
 
     Returns
     -------
@@ -93,7 +97,11 @@ def remove_pilots_from_plframe(
 
     payload_with_pilots = x[plheader_len:]
 
-    expected_len = expected_payload_with_pilots_len(fecframe)
+    if pilots_on:
+        expected_len = expected_payload_with_pilots_len(fecframe)
+    else:
+        expected_len = n_slots_for_fecframe(fecframe) * SLOT_LEN
+
     if payload_with_pilots.size != expected_len:
         raise ValueError(
             f"(payload+pilots) length mismatch: expected {expected_len} "
@@ -103,7 +111,7 @@ def remove_pilots_from_plframe(
 
     # Derive structure
     nslots = n_slots_for_fecframe(fecframe)
-    n_pil = (nslots - 1) // PILOT_PERIOD_SLOTS if nslots > 0 else 0
+    n_pil = (nslots - 1) // PILOT_PERIOD_SLOTS if (pilots_on and nslots > 0) else 0
     data_needed = nslots * SLOT_LEN
 
     # Allocate outputs
@@ -119,13 +127,19 @@ def remove_pilots_from_plframe(
     out_idx = 0
 
     # Process each pilot block
-    for k in range(n_pil):
-        payload_data[out_idx:out_idx + chunk_len] = payload_with_pilots[in_idx:in_idx + chunk_len]
-        in_idx += chunk_len
-        out_idx += chunk_len
+    if pilots_on:
+        for k in range(n_pil):
+            payload_data[out_idx:out_idx + chunk_len] = payload_with_pilots[in_idx:in_idx + chunk_len]
+            in_idx += chunk_len
+            out_idx += chunk_len
 
-        pilots[k, :] = payload_with_pilots[in_idx:in_idx + PILOT_BLOCK_LEN]
-        in_idx += PILOT_BLOCK_LEN
+            pilots[k, :] = payload_with_pilots[in_idx:in_idx + PILOT_BLOCK_LEN]
+            in_idx += PILOT_BLOCK_LEN
+    else:
+        # No pilots present; copy straight through
+        payload_data[:] = payload_with_pilots[:data_needed]
+        in_idx = data_needed
+        out_idx = data_needed
 
     # Remainder after last pilot block
     if out_idx < data_needed:
@@ -142,6 +156,7 @@ def remove_pilots_from_plframe(
         "slot_len": int(SLOT_LEN),
         "pilot_block_len": int(PILOT_BLOCK_LEN),
         "pilot_slots_after": _pilot_positions(nslots),
+        "pilots_on": bool(pilots_on),
     }
     return payload_data, pilots, meta
 

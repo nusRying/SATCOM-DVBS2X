@@ -410,6 +410,7 @@ def run_tx_rx_loopback(
             ldpc_max_iter=30,
             ldpc_norm=0.75,
             decode_ldpc=True,
+            pilots_on=pilots_on,
         )
         
         # Extract and save intermediate RX outputs

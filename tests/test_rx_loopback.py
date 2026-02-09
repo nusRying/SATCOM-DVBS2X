@@ -11,9 +11,10 @@ import os
 import sys
 import numpy as np
 
-ROOT = os.path.abspath(os.path.dirname(__file__))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+TEST_DIR = os.path.abspath(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, os.pardir))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from tx._01_BB_Frame import build_bbheader
 from tx._02_stream_adaptation import stream_adaptation_rate, get_kbch
@@ -60,7 +61,8 @@ def tx_generate_frame(
     bch_codeword = bch_encode_bbframe(scrambled, fecframe, rate)
 
     # LDPC
-    mat_path = mat_path or os.path.join(ROOT, "s2xLDPCParityMatrices", "dvbs2xLDPCParityMatrices.mat")
+    if mat_path is None:
+        mat_path = os.path.join(PROJECT_ROOT, "config", "ldpc_matrices", "dvbs2xLDPCParityMatrices.mat")
     ldpc_encoder = DVB_LDPC_Encoder(mat_path)
     ldpc_codeword = ldpc_encoder.encode(bch_codeword, fecframe, rate)
 
@@ -95,11 +97,10 @@ def tx_generate_frame(
     return plframe, meta
 
 
-def main() -> None:
+def _loopback(pilots_on: bool) -> None:
     fecframe = "short"
     rate = "1/2"
     modulation = "QPSK"
-    pilots_on = True
     scrambling_code = 0
 
     plframe, meta_tx = tx_generate_frame(
@@ -110,7 +111,6 @@ def main() -> None:
         scrambling_code=scrambling_code,
     )
 
-    # Receiver process
     out = process_rx_plframe(
         plframe,
         fecframe=fecframe,
@@ -120,6 +120,8 @@ def main() -> None:
         rate=rate,
         decode_ldpc=True,
         ldpc_max_iter=20,
+        pilots_on=pilots_on,
+        ldpc_mat_path=None,
     )
 
     df_rx = out["df_bits"]
@@ -129,8 +131,14 @@ def main() -> None:
     if df_rx.size != df_tx.size or not np.array_equal(df_rx, df_tx):
         raise AssertionError("Loopback failed: DF bits mismatch")
 
-    print("Loopback PASSED")
+    label = "with pilots" if pilots_on else "without pilots"
+    print(f"Loopback PASSED ({label})")
     print(f"DF bits: {df_tx.size}, Errors corrected (LDPC): {out['ldpc_meta']['syndrome_weight']}")
+
+
+def main() -> None:
+    _loopback(pilots_on=True)
+    _loopback(pilots_on=False)
 
 
 if __name__ == "__main__":

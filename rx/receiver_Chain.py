@@ -41,6 +41,8 @@ def process_rx_plframe(
     ldpc_max_iter: int = 30,
     ldpc_norm: float = 0.75,
     decode_ldpc: bool = True,
+    pilots_on: bool = True,
+    ldpc_decoder: DVB_LDPC_Decoder | None = None,
 ) -> Dict[str, Any]:
     """
     Run the current RX stages on a full PLFRAME:
@@ -52,21 +54,36 @@ def process_rx_plframe(
       6) LDPC decode (normalized min-sum)
       7) BCH check/strip
       8) BB descramble (padding kept)
+      9) BB deframe to DF bits
 
     Returns a dict with intermediate artifacts for downstream blocks.
     """
     # Step 1: descramble everything after PLHEADER
     descrambled = pl_descramble_full_plframe(rx_plframe, scrambling_code=scrambling_code)
 
-    # Step 2: strip pilots, keep data-only payload + pilots
-    payload_data, pilots, pilot_meta = remove_pilots_from_plframe(descrambled, fecframe=fecframe)
-
-    # Step 3: pilot-aided phase correction on payload
-    corrected_payload, phases, phase_meta = apply_pilot_phase_correction(
-        payload_data,
-        pilots,
+    # Step 2: strip pilots (or bypass if pilots disabled), keep data-only payload + pilots
+    payload_data, pilots, pilot_meta = remove_pilots_from_plframe(
+        descrambled,
         fecframe=fecframe,
+        pilots_on=pilots_on,
     )
+
+    # Step 3: pilot-aided phase correction on payload (skip if pilots disabled)
+    if pilots_on:
+        corrected_payload, phases, phase_meta = apply_pilot_phase_correction(
+            payload_data,
+            pilots,
+            fecframe=fecframe,
+        )
+    else:
+        corrected_payload = payload_data
+        phases = np.array([], dtype=np.float64)
+        phase_meta = {
+            "fecframe": fecframe,
+            "chunk_len": None,
+            "pilot_blocks": 0,
+            "payload_symbols": int(payload_data.size),
+        }
 
     # Step 4: demap symbols -> LLRs
     llrs, demap_meta = dvbs2_constellation_demapper(
@@ -93,7 +110,17 @@ def process_rx_plframe(
         if ldpc_mat_path is None:
             ldpc_mat_path = os.path.join(ROOT, "config", "ldpc_matrices", "dvbs2xLDPCParityMatrices.mat")
         mat_path = ldpc_mat_path
-        ldpc_dec = DVB_LDPC_Decoder(mat_path)
+
+        # Reuse decoder to avoid reloading large MAT file
+        _cache: dict[str, DVB_LDPC_Decoder] = process_rx_plframe.__dict__.setdefault("_ldpc_cache", {})
+        if ldpc_decoder is not None:
+            ldpc_dec = ldpc_decoder
+        else:
+            ldpc_dec = _cache.get(mat_path)
+            if ldpc_dec is None:
+                ldpc_dec = DVB_LDPC_Decoder(mat_path)
+                _cache[mat_path] = ldpc_dec
+
         ldpc_bits, ldpc_meta = ldpc_dec.decode(
             llrs_deint,
             fecframe=fecframe,
