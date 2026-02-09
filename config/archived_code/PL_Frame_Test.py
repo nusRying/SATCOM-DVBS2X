@@ -2,6 +2,7 @@
 #  TEST SUITE FOR DVB-S2 MERGER/SLICER PIPELINE  (CORRECTED)
 # ============================================================
 import numpy as np
+import builtins
 from PL_Frame import (
     dvbs2_crc8,
     convert_to_bits,
@@ -136,12 +137,12 @@ def test_pipeline_ts():
     def fake_input(_):
         return next(inputs)
 
-    real_input = __builtins__.input
-    __builtins__.input = fake_input
+    real_input = builtins.input
+    builtins.input = fake_input
 
     PLFRAME = dvbs2_merger_slicer_pipeline()
 
-    __builtins__.input = real_input
+    builtins.input = real_input
 
     assert len(PLFRAME) == 80 + 500, "TS PLFRAME size incorrect"
 
@@ -152,12 +153,12 @@ def test_pipeline_gs():
     def fake_input(_):
         return next(inputs)
 
-    real_input = __builtins__.input
-    __builtins__.input = fake_input
+    real_input = builtins.input
+    builtins.input = fake_input
 
     PLFRAME = dvbs2_merger_slicer_pipeline()
 
-    __builtins__.input = real_input
+    builtins.input = real_input
 
     assert len(PLFRAME) == 80 + 500, "GS PLFRAME size incorrect"
 
