@@ -18,6 +18,7 @@ if ROOT not in sys.path:
 import numpy as np
 from typing import Dict, Any
 
+from rx._00_pl_header_decoder import decode_plheader, PLHEADER_LEN_SYMS
 from rx._01_pl_descrambler import pl_descramble_full_plframe
 from rx._02_pilot_removal_rx import remove_pilots_from_plframe
 from rx._03_pilot_phase_correction import apply_pilot_phase_correction
@@ -31,21 +32,24 @@ from rx._07_bb_deframer import deframe_bb
 
 def process_rx_plframe(
     rx_plframe: np.ndarray,
-    fecframe: str,
+    fecframe: str | None = None,
     scrambling_code: int = 0,
-    modulation: str = "QPSK",
-    rate: str = "1/2",
+    modulation: str | None = "QPSK",
+    rate: str | None = "1/2",
     noise_var: float | None = None,
     esn0_db: float | None = None,
     ldpc_mat_path: str | None = None,
     ldpc_max_iter: int = 30,
     ldpc_norm: float = 0.75,
     decode_ldpc: bool = True,
-    pilots_on: bool = True,
+    pilots_on: bool | None = True,
     ldpc_decoder: DVB_LDPC_Decoder | None = None,
+    decode_plheader: bool = False,
+    sof_max_errors: int = 4,
 ) -> Dict[str, Any]:
     """
     Run the current RX stages on a full PLFRAME:
+      0) (optional) Demap PLHEADER, verify SOF, decode PLSC (MODCOD/TYPE)
       1) PL descrambling (excludes PLHEADER)
       2) Pilot removal (returns data-only payload + pilots)
       3) Pilot-aided common phase correction on payload
@@ -58,6 +62,22 @@ def process_rx_plframe(
 
     Returns a dict with intermediate artifacts for downstream blocks.
     """
+    plheader_info: Dict[str, Any] | None = None
+
+    if decode_plheader:
+        # Stage 0: demap + decode PLHEADER to recover signalling
+        plheader_info = decode_plheader(rx_plframe[:PLHEADER_LEN_SYMS], sof_max_errors=sof_max_errors)
+        fecframe = plheader_info["fecframe"]
+        modulation = plheader_info["modulation"]
+        rate = plheader_info["code_rate"]
+        pilots_on = plheader_info["pilots"]
+
+    if fecframe is None or modulation is None or rate is None or pilots_on is None:
+        raise ValueError(
+            "fecframe/modulation/rate/pilots_on must be provided or decoded from PLHEADER "
+            "(set decode_plheader=True)."
+        )
+
     # Step 1: descramble everything after PLHEADER
     descrambled = pl_descramble_full_plframe(rx_plframe, scrambling_code=scrambling_code)
 
@@ -141,6 +161,7 @@ def process_rx_plframe(
         df_bits, df_meta = deframe_bb(bbframe_padded, fecframe, rate)
 
     return {
+        "plheader_info": plheader_info,
         "payload_corrected": corrected_payload,
         "payload_raw": payload_data,
         "pilots": pilots,

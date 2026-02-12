@@ -1,9 +1,10 @@
-RX Chain Overview (Stages 12–19)
+RX Chain Overview (Stages 11–19)
 ---------------------------------
 Scope  
-- DVB‑S2/S2X baseband receive chain after front‑end timing/FEC sync. Implements EN 302 307‑1 clauses 5.2–5.5 to recover BBFRAME/DF bits.
+- DVB‑S2/S2X baseband receive chain after front‑end timing/FEC sync. Implements EN 302 307‑1 clauses 5.2‑5.5 to recover BBFRAME/DF bits.
 
 Execution order (with file references)  
+11. PLHEADER decode (`rx/_00_pl_header_decoder.py`) – demap π/2‑BPSK header, check SOF, decode PLSC → MODCOD/FECFRAME/pilots.  
 12. PL descramble (`rx/_01_pl_descrambler.py`) – undo complex Gold scrambler Cₙ after the 90‑sym PLHEADER.  
 13. Pilot removal (`rx/_02_pilot_removal_rx.py`) – drop 36‑sym pilot blocks every 16 slots when pilots are present.  
 14. Pilot phase correction (`rx/_03_pilot_phase_correction.py`) – estimate CPE per pilot block and derotate payload.  

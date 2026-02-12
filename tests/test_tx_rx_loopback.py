@@ -86,6 +86,41 @@ def plot_constellation(symbols: np.ndarray, title: str, output_path: str):
         print(f"Warning: Could not plot constellation: {e}")
 
 
+def plot_time_series(samples: np.ndarray, title: str, output_path: str, highlight_idx=None):
+    """
+    Plot real/imag parts versus sample index (time plot).
+    """
+    if not MATPLOTLIB_AVAILABLE:
+        return
+
+    try:
+        if samples is None or len(samples) == 0:
+            print(f"Warning: No samples to plot for {title}")
+            return
+
+        n = np.arange(len(samples))
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.plot(n, samples.real, label="Real", color="C0", lw=1.2)
+        ax.plot(n, samples.imag, label="Imag", color="C1", lw=1.2, alpha=0.8)
+
+        if highlight_idx is not None and len(highlight_idx) > 0:
+            for idx in highlight_idx:
+                ax.axvline(idx, color="k", ls="--", lw=0.8, alpha=0.6)
+            ax.scatter(highlight_idx, samples.real[highlight_idx], color="C0", marker="o", zorder=5)
+            ax.scatter(highlight_idx, samples.imag[highlight_idx], color="C1", marker="x", zorder=5)
+
+        ax.set_xlabel("Symbol index")
+        ax.set_ylabel("Amplitude")
+        ax.set_title(title, fontsize=12, fontweight="bold")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="upper right")
+        plt.tight_layout()
+        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    except Exception as e:
+        print(f"Warning: Could not plot time series: {e}")
+
+
 def save_intermediate(data, name: str, output_dir: str, frame_num: int, format_type: str = "text"):
     """Save intermediate signal/data at each processing stage."""
     os.makedirs(output_dir, exist_ok=True)
@@ -412,7 +447,30 @@ def run_tx_rx_loopback(
             decode_ldpc=True,
             pilots_on=pilots_on,
         )
-        
+
+        # RX sanity test: flip 5 payload symbols after pilot removal and plot
+        if detailed_report and MATPLOTLIB_AVAILABLE:
+            payload_raw = rx_output.get("payload_raw")
+            if payload_raw is not None and payload_raw.size >= 5:
+                flip_idx = np.linspace(0, payload_raw.size - 1, 5, dtype=int)
+                flipped = payload_raw.copy()
+                flipped[flip_idx] *= -1  # simple sign flip to visualize impact
+
+                save_intermediate(flipped, "02a_payload_raw_flipped", intermediate_dir, frame_num, "complex")
+
+                plot_time_series(
+                    payload_raw,
+                    f"RX Payload (Frame {frame_num}) - original",
+                    os.path.join(intermediate_dir, f"frame{frame_num}_02_payload_time_orig.png"),
+                    highlight_idx=flip_idx,
+                )
+                plot_time_series(
+                    flipped,
+                    f"RX Payload (Frame {frame_num}) - flipped 5 syms",
+                    os.path.join(intermediate_dir, f"frame{frame_num}_02_payload_time_flipped.png"),
+                    highlight_idx=flip_idx,
+                )
+
         # Extract and save intermediate RX outputs
         if detailed_report:
             if rx_output.get("descrambled") is not None:
